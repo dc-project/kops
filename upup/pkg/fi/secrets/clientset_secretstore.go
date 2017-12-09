@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kops/pkg/acls"
 	"k8s.io/kops/pkg/apis/kops"
 	kopsinternalversion "k8s.io/kops/pkg/client/clientset_generated/clientset/typed/kops/internalversion"
 	"k8s.io/kops/pkg/pki"
@@ -37,6 +38,7 @@ const NamePrefix = "token-"
 
 // ClientsetSecretStore is a SecretStore backed by Keyset objects in an API server
 type ClientsetSecretStore struct {
+	cluster   *kops.Cluster
 	namespace string
 	clientset kopsinternalversion.KopsInterface
 }
@@ -44,8 +46,9 @@ type ClientsetSecretStore struct {
 var _ fi.SecretStore = &ClientsetSecretStore{}
 
 // NewClientsetSecretStore is the constructor for ClientsetSecretStore
-func NewClientsetSecretStore(clientset kopsinternalversion.KopsInterface, namespace string) fi.SecretStore {
+func NewClientsetSecretStore(cluster *kops.Cluster, clientset kopsinternalversion.KopsInterface, namespace string) fi.SecretStore {
 	c := &ClientsetSecretStore{
+		cluster:   cluster,
 		clientset: clientset,
 		namespace: namespace,
 	}
@@ -81,7 +84,12 @@ func (c *ClientsetSecretStore) MirrorTo(basedir vfs.Path) error {
 			return fmt.Errorf("error serializing secret: %v", err)
 		}
 
-		if err := p.WriteFile(data); err != nil {
+		acl, err := acls.GetACL(p, c.cluster)
+		if err != nil {
+			return err
+		}
+
+		if err := p.WriteFile(data, acl); err != nil {
 			return fmt.Errorf("error writing secret to %q: %v", p, err)
 		}
 	}
@@ -149,7 +157,7 @@ func (c *ClientsetSecretStore) GetOrCreateSecret(name string, secret *fi.Secret)
 			return s, false, nil
 		}
 
-		_, err = c.createSecret(secret, name)
+		_, err = c.createSecret(secret, name, false)
 		if err != nil {
 			if errors.IsAlreadyExists(err) && i == 0 {
 				glog.Infof("Got already-exists error when writing secret; likely due to concurrent creation.  Will retry")
@@ -171,6 +179,21 @@ func (c *ClientsetSecretStore) GetOrCreateSecret(name string, secret *fi.Secret)
 		return nil, false, err
 	}
 	return s, true, nil
+}
+
+// ReplaceSecret implements fi.SecretStore::ReplaceSecret
+func (c *ClientsetSecretStore) ReplaceSecret(name string, secret *fi.Secret) (*fi.Secret, error) {
+	_, err := c.createSecret(secret, name, true)
+	if err != nil {
+		return nil, fmt.Errorf("unable to write secret: %v", err)
+	}
+
+	// Confirm the secret exists
+	s, err := c.loadSecret(name)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load secret immmediately after creation: %v", err)
+	}
+	return s, nil
 }
 
 // loadSecret returns the named secret, if it exists, otherwise returns nil
@@ -199,8 +222,8 @@ func parseSecret(keyset *kops.Keyset) (*fi.Secret, error) {
 	return s, nil
 }
 
-// createSecret writes the secret, but only if it does not exist
-func (c *ClientsetSecretStore) createSecret(s *fi.Secret, name string) (*kops.Keyset, error) {
+// createSecret will create the Secret, overwriting an existing secret if replace is true
+func (c *ClientsetSecretStore) createSecret(s *fi.Secret, name string, replace bool) (*kops.Keyset, error) {
 	keyset := &kops.Keyset{}
 	keyset.Name = NamePrefix + name
 	keyset.Spec.Type = kops.SecretTypeSecret
@@ -213,5 +236,8 @@ func (c *ClientsetSecretStore) createSecret(s *fi.Secret, name string) (*kops.Ke
 		PrivateMaterial: s.Data,
 	})
 
+	if replace {
+		return c.clientset.Keysets(c.namespace).Update(keyset)
+	}
 	return c.clientset.Keysets(c.namespace).Create(keyset)
 }

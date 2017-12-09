@@ -18,6 +18,8 @@ package cloudup
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/golang/glog"
 	"k8s.io/kops/pkg/apis/kops"
 	"k8s.io/kops/upup/pkg/fi"
@@ -25,10 +27,10 @@ import (
 	"k8s.io/kops/upup/pkg/fi/cloudup/baremetal"
 	"k8s.io/kops/upup/pkg/fi/cloudup/do"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
+	"k8s.io/kops/upup/pkg/fi/cloudup/openstack"
 	"k8s.io/kops/upup/pkg/fi/cloudup/vsphere"
 	"k8s.io/kubernetes/federation/pkg/dnsprovider"
 	"k8s.io/kubernetes/federation/pkg/dnsprovider/providers/aws/route53"
-	"strings"
 )
 
 func BuildCloud(cluster *kops.Cluster) (fi.Cloud, error) {
@@ -128,6 +130,15 @@ func BuildCloud(cluster *kops.Cluster) (fi.Cloud, error) {
 				return nil, err
 			}
 			cloud = baremetalCloud
+		}
+	case kops.CloudProviderOpenstack:
+		{
+			cloudTags := map[string]string{openstack.TagClusterName: cluster.ObjectMeta.Name}
+			osc, err := openstack.NewOpenstackCloud(cloudTags)
+			if err != nil {
+				return nil, err
+			}
+			cloud = osc
 		}
 
 	default:

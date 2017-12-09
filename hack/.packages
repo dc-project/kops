@@ -5,6 +5,7 @@ k8s.io/kops/channels/pkg/channels
 k8s.io/kops/channels/pkg/cmd
 k8s.io/kops/cloudmock/aws/mockautoscaling
 k8s.io/kops/cloudmock/aws/mockec2
+k8s.io/kops/cloudmock/aws/mockelb
 k8s.io/kops/cloudmock/aws/mockroute53
 k8s.io/kops/cmd/kops
 k8s.io/kops/cmd/kops/util
@@ -23,6 +24,8 @@ k8s.io/kops/nodeup/pkg/bootstrap
 k8s.io/kops/nodeup/pkg/distros
 k8s.io/kops/nodeup/pkg/model
 k8s.io/kops/nodeup/pkg/model/resources
+k8s.io/kops/pkg/acls
+k8s.io/kops/pkg/acls/gce
 k8s.io/kops/pkg/apis/kops
 k8s.io/kops/pkg/apis/kops/install
 k8s.io/kops/pkg/apis/kops/model
@@ -34,7 +37,6 @@ k8s.io/kops/pkg/apis/kops/validation
 k8s.io/kops/pkg/apis/nodeup
 k8s.io/kops/pkg/apiserver
 k8s.io/kops/pkg/apiserver/cmd/server
-k8s.io/kops/pkg/apiserver/registry
 k8s.io/kops/pkg/apiserver/registry/cluster
 k8s.io/kops/pkg/apiserver/registry/instancegroup
 k8s.io/kops/pkg/assets
@@ -76,6 +78,7 @@ k8s.io/kops/pkg/model
 k8s.io/kops/pkg/model/awsmodel
 k8s.io/kops/pkg/model/components
 k8s.io/kops/pkg/model/defaults
+k8s.io/kops/pkg/model/domodel
 k8s.io/kops/pkg/model/gcemodel
 k8s.io/kops/pkg/model/iam
 k8s.io/kops/pkg/model/resources
@@ -86,7 +89,8 @@ k8s.io/kops/pkg/pretty
 k8s.io/kops/pkg/resources
 k8s.io/kops/pkg/resources/digitalocean
 k8s.io/kops/pkg/resources/digitalocean/dns
-k8s.io/kops/pkg/resources/tracker
+k8s.io/kops/pkg/resources/gce
+k8s.io/kops/pkg/resources/ops
 k8s.io/kops/pkg/systemd
 k8s.io/kops/pkg/templates
 k8s.io/kops/pkg/testutils
@@ -119,6 +123,8 @@ k8s.io/kops/upup/pkg/fi/cloudup/do
 k8s.io/kops/upup/pkg/fi/cloudup/dotasks
 k8s.io/kops/upup/pkg/fi/cloudup/gce
 k8s.io/kops/upup/pkg/fi/cloudup/gcetasks
+k8s.io/kops/upup/pkg/fi/cloudup/openstack
+k8s.io/kops/upup/pkg/fi/cloudup/openstacktasks
 k8s.io/kops/upup/pkg/fi/cloudup/terraform
 k8s.io/kops/upup/pkg/fi/cloudup/vsphere
 k8s.io/kops/upup/pkg/fi/cloudup/vspheretasks

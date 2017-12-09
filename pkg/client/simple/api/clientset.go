@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kops/pkg/apis/kops"
 	"k8s.io/kops/pkg/apis/kops/registry"
@@ -31,7 +32,6 @@ import (
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/upup/pkg/fi/secrets"
 	"k8s.io/kops/util/pkg/vfs"
-	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/api/errors"
 )
 
 // RESTClientset is an implementation of clientset that uses a "real" generated REST client
@@ -109,12 +109,12 @@ func (c *RESTClientset) GetFederation(name string) (*kops.Federation, error) {
 
 func (c *RESTClientset) SecretStore(cluster *kops.Cluster) (fi.SecretStore, error) {
 	namespace := restNamespaceForClusterName(cluster.Name)
-	return secrets.NewClientsetSecretStore(c.KopsClient, namespace), nil
+	return secrets.NewClientsetSecretStore(cluster, c.KopsClient, namespace), nil
 }
 
 func (c *RESTClientset) KeyStore(cluster *kops.Cluster) (fi.CAStore, error) {
 	namespace := restNamespaceForClusterName(cluster.Name)
-	return fi.NewClientsetCAStore(c.KopsClient, namespace), nil
+	return fi.NewClientsetCAStore(cluster, c.KopsClient, namespace), nil
 }
 
 func (c *RESTClientset) DeleteCluster(cluster *kops.Cluster) error {

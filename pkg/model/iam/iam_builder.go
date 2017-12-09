@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// IAM Documentation: /docs/iam_roles.md
+
 // TODO: We have a couple different code paths until we do lifecycles, and
 // TODO: when we have a cluster or refactor some s3 code.  The only code that
 // TODO: is not shared by the different path is the s3 / state store stuff.
@@ -100,13 +102,12 @@ func (l *Statement) Equal(r *Statement) bool {
 // PolicyBuilder struct defines all valid fields to be used when building the
 // AWS IAM policy document for a given instance group role.
 type PolicyBuilder struct {
-	Cluster        *kops.Cluster
-	CreateECRPerms bool
-	HostedZoneID   string
-	KMSKeys        []string
-	Region         string
-	ResourceARN    *string
-	Role           kops.InstanceGroupRole
+	Cluster      *kops.Cluster
+	HostedZoneID string
+	KMSKeys      []string
+	Region       string
+	ResourceARN  *string
+	Role         kops.InstanceGroupRole
 }
 
 // BuildAWSPolicy builds a set of IAM policy statements based on the
@@ -169,16 +170,20 @@ func (b *PolicyBuilder) BuildAWSPolicyMaster() (*Policy, error) {
 		addKMSIAMPolicies(p, stringorslice.Slice(b.KMSKeys), b.Cluster.Spec.IAM.Legacy)
 	}
 
-	if b.Cluster.Spec.IAM.Legacy || b.CreateECRPerms {
-		addECRPermissions(p)
-	}
-
 	if b.HostedZoneID != "" {
 		addRoute53Permissions(p, b.HostedZoneID)
 	}
 
 	if b.Cluster.Spec.IAM.Legacy {
 		addRoute53ListHostedZonesPermission(p)
+	}
+
+	if b.Cluster.Spec.IAM.Legacy || b.Cluster.Spec.IAM.AllowContainerRegistry {
+		addECRPermissions(p)
+	}
+
+	if b.Cluster.Spec.Networking != nil && b.Cluster.Spec.Networking.Romana != nil {
+		addRomanaCNIPermissions(p, resource, b.Cluster.Spec.IAM.Legacy)
 	}
 
 	return p, nil
@@ -199,15 +204,15 @@ func (b *PolicyBuilder) BuildAWSPolicyNode() (*Policy, error) {
 		return nil, fmt.Errorf("failed to generate AWS IAM S3 access statements: %v", err)
 	}
 
-	if b.Cluster.Spec.IAM.Legacy || b.CreateECRPerms {
-		addECRPermissions(p)
-	}
-
 	if b.Cluster.Spec.IAM.Legacy {
 		if b.HostedZoneID != "" {
 			addRoute53Permissions(p, b.HostedZoneID)
 		}
 		addRoute53ListHostedZonesPermission(p)
+	}
+
+	if b.Cluster.Spec.IAM.Legacy || b.Cluster.Spec.IAM.AllowContainerRegistry {
+		addECRPermissions(p)
 	}
 
 	return p, nil
@@ -343,6 +348,17 @@ func (b *PolicyBuilder) AddS3Permissions(p *Policy) (*Policy, error) {
 							strings.Join([]string{b.IAMPrefix(), ":s3:::", iamS3Path, "/secrets/dockerconfig"}, ""),
 						),
 					})
+
+					if b.Cluster.Spec.Networking != nil && b.Cluster.Spec.Networking.Kuberouter != nil {
+						p.Statement = append(p.Statement, &Statement{
+							Sid:    "kopsK8sS3NodeBucketGetKuberouter",
+							Effect: StatementEffectAllow,
+							Action: stringorslice.Slice([]string{"s3:Get*"}),
+							Resource: stringorslice.Of(
+								strings.Join([]string{b.IAMPrefix(), ":s3:::", iamS3Path, "/pki/private/kube-router/*"}, ""),
+							),
+						})
+					}
 				}
 			}
 		} else if _, ok := vfsPath.(*vfs.MemFSPath); ok {
@@ -601,6 +617,23 @@ func addMasterELBPolicies(p *Policy, resource stringorslice.StringOrSlice, legac
 			),
 			Resource: resource,
 		})
+
+		p.Statement = append(p.Statement, &Statement{
+			Sid:    "kopsK8sNLBMasterPermsRestrictive",
+			Effect: StatementEffectAllow,
+			Action: stringorslice.Of(
+				"elasticloadbalancing:CreateListener",       // aws_loadbalancer.go
+				"elasticloadbalancing:DescribeListeners",    // aws_loadbalancer.go
+				"elasticloadbalancing:CreateTargetGroup",    // aws_loadbalancer.go
+				"elasticloadbalancing:DescribeTargetGroups", // aws_loadbalancer.go
+				"elasticloadbalancing:RegisterTargets",      // aws_loadbalancer.go
+				"elasticloadbalancing:DescribeTargetHealth", // aws_loadbalancer.go
+				"elasticloadbalancing:AddTags",              // aws_loadbalancer.go
+				"elasticloadbalancing:ModifyTargetGroup",    // aws_loadbalancer.go
+				"ec2:DescribeVpcs",                          // aws_loadbalancer.go
+			),
+			Resource: resource,
+		})
 	}
 }
 
@@ -645,7 +678,7 @@ func addMasterASPolicies(p *Policy, resource stringorslice.StringOrSlice, legacy
 				Resource: resource,
 				Condition: Condition{
 					"StringEquals": map[string]string{
-						"ec2:ResourceTag/KubernetesCluster": clusterName,
+						"autoscaling:ResourceTag/KubernetesCluster": clusterName,
 					},
 				},
 			},
@@ -673,6 +706,27 @@ func addRoute53ListHostedZonesPermission(p *Policy) {
 		Action:   stringorslice.Slice([]string{"route53:ListHostedZones"}),
 		Resource: wildcard,
 	})
+}
+
+func addRomanaCNIPermissions(p *Policy, resource stringorslice.StringOrSlice, legacyIAM bool) {
+	if legacyIAM {
+		// Legacy IAM provides ec2:*, so no additional permissions required
+		return
+	} else {
+		// Romana requires additional Describe permissions
+		// Comments are which Romana component makes the call
+		p.Statement = append(p.Statement,
+			&Statement{
+				Sid:    "kopsK8sEC2MasterPermsRomanaCNI",
+				Effect: StatementEffectAllow,
+				Action: stringorslice.Slice([]string{
+					"ec2:DescribeAvailabilityZones", // vpcrouter
+					"ec2:DescribeVpcs",              // vpcrouter
+				}),
+				Resource: resource,
+			},
+		)
+	}
 }
 
 func createResource(b *PolicyBuilder) stringorslice.StringOrSlice {

@@ -18,6 +18,7 @@ go_library(
         "sshkey.go",
         "template_resource.go",
     ],
+    importpath = "k8s.io/kops/pkg/model",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/kops:go_default_library",
@@ -35,6 +36,8 @@ go_library(
         "//upup/pkg/fi/cloudup/dotasks:go_default_library",
         "//upup/pkg/fi/cloudup/gce:go_default_library",
         "//upup/pkg/fi/cloudup/gcetasks:go_default_library",
+        "//upup/pkg/fi/cloudup/openstack:go_default_library",
+        "//upup/pkg/fi/cloudup/openstacktasks:go_default_library",
         "//upup/pkg/fi/fitasks:go_default_library",
         "//util/pkg/vfs:go_default_library",
         "//vendor/github.com/blang/semver:go_default_library",
@@ -43,6 +46,7 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/util/net:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
         "//vendor/k8s.io/apiserver/pkg/authentication/user:go_default_library",
+        "//vendor/k8s.io/kubernetes/pkg/cloudprovider/providers/aws:go_default_library",
     ],
 )
 
@@ -53,6 +57,7 @@ go_test(
         "context_test.go",
     ],
     data = glob(["tests/**"]),  #keep
+    importpath = "k8s.io/kops/pkg/model",
     library = ":go_default_library",
     deps = [
         "//pkg/apis/kops:go_default_library",

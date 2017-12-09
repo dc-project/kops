@@ -30,6 +30,7 @@ import (
 	"k8s.io/kops/protokube/pkg/gossip"
 	gossipgce "k8s.io/kops/protokube/pkg/gossip/gce"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
+	"os"
 )
 
 // GCEVolumes is the Volumes implementation for GCE
@@ -76,7 +77,7 @@ func (a *GCEVolumes) ClusterID() string {
 	return a.clusterName
 }
 
-// ClusterID returns the current GCE project
+// Project returns the current GCE project
 func (a *GCEVolumes) Project() string {
 	return a.project
 }
@@ -238,7 +239,7 @@ func (v *GCEVolumes) FindVolumes() ([]*Volume, error) {
 
 			diskClusterName := d.Labels[gce.GceLabelNameKubernetesCluster]
 			if diskClusterName == "" {
-				glog.V(2).Infof("Skipping disk %q with no cluster name", d.Name)
+				glog.V(4).Infof("Skipping disk %q with no cluster name", d.Name)
 				continue
 			}
 			// Note that the cluster name is _not_ encoded with EncodeGCELabel
@@ -308,6 +309,20 @@ func (v *GCEVolumes) FindVolumes() ([]*Volume, error) {
 	//}
 
 	return volumes, nil
+}
+
+// FindMountedVolume implements Volumes::FindMountedVolume
+func (v *GCEVolumes) FindMountedVolume(volume *Volume) (string, error) {
+	device := volume.LocalDevice
+
+	_, err := os.Stat(pathFor(device))
+	if err == nil {
+		return device, nil
+	}
+	if os.IsNotExist(err) {
+		return "", nil
+	}
+	return "", fmt.Errorf("error checking for device %q: %v", device, err)
 }
 
 // AttachVolume attaches the specified volume to this instance, returning the mountpoint & nil if successful

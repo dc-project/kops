@@ -20,8 +20,9 @@ import (
 	crypto_rand "crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"k8s.io/kops/util/pkg/vfs"
 	"strings"
+
+	"k8s.io/kops/util/pkg/vfs"
 )
 
 type SecretStore interface {
@@ -31,8 +32,10 @@ type SecretStore interface {
 	DeleteSecret(item *KeystoreItem) error
 	// FindSecret finds a secret, if exists.  Returns nil,nil if not found
 	FindSecret(id string) (*Secret, error)
-	// GetOrCreateSecret creates or replace a secret
+	// GetOrCreateSecret creates a secret
 	GetOrCreateSecret(id string, secret *Secret) (current *Secret, created bool, err error)
+	// ReplaceSecret will forcefully update an existing secret if it exists
+	ReplaceSecret(id string, secret *Secret) (current *Secret, err error)
 	// ListSecrets lists the ids of all known secrets
 	ListSecrets() ([]string, error)
 

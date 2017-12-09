@@ -116,7 +116,7 @@ func (c *NodeupModelContext) CNIConfDir() string {
 
 // buildPKIKubeconfig generates a kubeconfig
 func (c *NodeupModelContext) buildPKIKubeconfig(id string) (string, error) {
-	caCertificate, err := c.KeyStore.Cert(fi.CertificateId_CA, false)
+	caCertificate, err := c.KeyStore.FindCert(fi.CertificateId_CA)
 	if err != nil {
 		return "", fmt.Errorf("error fetching CA certificate from keystore: %v", err)
 	}
@@ -245,4 +245,16 @@ func (c *NodeupModelContext) UseSecureKubelet() bool {
 	}
 
 	return false
+}
+
+// KubectlPath returns distro based path for kubectl
+func (c *NodeupModelContext) KubectlPath() string {
+	kubeletCommand := "/usr/local/bin"
+	if c.Distribution == distros.DistributionCoreOS {
+		kubeletCommand = "/opt/bin"
+	}
+	if c.Distribution == distros.DistributionContainerOS {
+		kubeletCommand = "/home/kubernetes/bin"
+	}
+	return kubeletCommand
 }

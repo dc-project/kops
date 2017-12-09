@@ -24,6 +24,7 @@ spec:
       zone: us-test-1a
     name: events
   iam:
+    allowContainerRegistry: true
     legacy: false
   kubernetesVersion: v1.4.8
   masterPublicName: api.private.example.com
@@ -59,6 +60,8 @@ spec:
   machineType: t2.micro
   maxSize: 1
   minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: bastions
   role: Bastion
   zones:
   - utility-us-test-1a
@@ -77,6 +80,8 @@ spec:
   machineType: m3.medium
   maxSize: 1
   minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: master-us-test-1a
   role: Master
   zones:
   - us-test-1a
@@ -95,6 +100,8 @@ spec:
   machineType: t2.medium
   maxSize: 2
   minSize: 2
+  nodeLabels:
+    kops.k8s.io/instancegroup: nodes
   role: Node
   zones:
   - us-test-1a

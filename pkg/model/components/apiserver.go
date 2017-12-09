@@ -94,6 +94,10 @@ func (b *KubeAPIServerOptionsBuilder) BuildOptions(o interface{}) error {
 		clusterSpec.KubeAPIServer.AuthorizationMode = fi.String("RBAC")
 	}
 
+	if err := b.configureAggregation(clusterSpec); err != nil {
+		return nil
+	}
+
 	image, err := Image("kube-apiserver", clusterSpec, b.AssetBuilder)
 	if err != nil {
 		return err
@@ -111,8 +115,14 @@ func (b *KubeAPIServerOptionsBuilder) BuildOptions(o interface{}) error {
 		c.CloudProvider = "vsphere"
 	case kops.CloudProviderBareMetal:
 		// for baremetal, we don't specify a cloudprovider to apiserver
+	case kops.CloudProviderOpenstack:
+		c.CloudProvider = "openstack"
 	default:
 		return fmt.Errorf("unknown cloudprovider %q", clusterSpec.CloudProvider)
+	}
+
+	if clusterSpec.ExternalCloudControllerManager != nil {
+		c.CloudProvider = "external"
 	}
 
 	c.LogLevel = 2
@@ -242,4 +252,16 @@ func (b *KubeAPIServerOptionsBuilder) buildAPIServerCount(clusterSpec *kops.Clus
 	count := counts["main"]
 
 	return count
+}
+
+// configureAggregation sets up the aggregation options
+func (b *KubeAPIServerOptionsBuilder) configureAggregation(clusterSpec *kops.ClusterSpec) error {
+	if b.IsKubernetesGTE("1.7") {
+		clusterSpec.KubeAPIServer.RequestheaderAllowedNames = []string{"aggregator"}
+		clusterSpec.KubeAPIServer.RequestheaderExtraHeaderPrefixes = []string{"X-Remote-Extra-"}
+		clusterSpec.KubeAPIServer.RequestheaderGroupHeaders = []string{"X-Remote-Group"}
+		clusterSpec.KubeAPIServer.RequestheaderUsernameHeaders = []string{"X-Remote-User"}
+	}
+
+	return nil
 }

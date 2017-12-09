@@ -3,8 +3,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["integrationtestharness.go"],
+    importpath = "k8s.io/kops/pkg/testutils",
     visibility = ["//visibility:public"],
     deps = [
+        "//:go_default_library",
         "//cloudmock/aws/mockec2:go_default_library",
         "//cloudmock/aws/mockroute53:go_default_library",
         "//pkg/apis/kops:go_default_library",

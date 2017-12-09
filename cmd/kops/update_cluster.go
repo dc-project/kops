@@ -102,13 +102,13 @@ func NewCmdUpdateCluster(f *util.Factory, out io.Writer) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&options.Yes, "yes", options.Yes, "Actually create cloud resources")
+	cmd.Flags().BoolVarP(&options.Yes, "yes", "y", options.Yes, "Create cloud resources, without --yes update is in dry run mode")
 	cmd.Flags().StringVar(&options.Target, "target", options.Target, "Target - direct, terraform, cloudformation")
 	cmd.Flags().StringVar(&options.Models, "model", options.Models, "Models to apply (separate multiple models with commas)")
 	cmd.Flags().StringVar(&options.SSHPublicKey, "ssh-public-key", options.SSHPublicKey, "SSH public key to use (deprecated: use kops create secret instead)")
 	cmd.Flags().StringVar(&options.OutDir, "out", options.OutDir, "Path to write any local output")
 	cmd.Flags().BoolVar(&options.CreateKubecfg, "create-kube-config", options.CreateKubecfg, "Will control automatically creating the kube config file on your local filesystem")
-	cmd.Flags().StringVar(&options.Phase, "phase", options.Phase, "Subset of tasks to run: "+strings.Join(cloudup.Phases.List(), ","))
+	cmd.Flags().StringVar(&options.Phase, "phase", options.Phase, "Subset of tasks to run: "+strings.Join(cloudup.Phases.List(), ", "))
 	return cmd
 }
 
@@ -179,10 +179,10 @@ func RunUpdateCluster(f *util.Factory, clusterName string, out io.Writer, c *Upd
 		switch strings.ToLower(c.Phase) {
 		case string(cloudup.PhaseStageAssets):
 			phase = cloudup.PhaseStageAssets
-		case string(cloudup.PhaseIAM):
-			phase = cloudup.PhaseIAM
 		case string(cloudup.PhaseNetwork):
 			phase = cloudup.PhaseNetwork
+		case string(cloudup.PhaseSecurity), "iam": // keeping IAM for backwards compatibility
+			phase = cloudup.PhaseSecurity
 		case string(cloudup.PhaseCluster):
 			phase = cloudup.PhaseCluster
 		default:

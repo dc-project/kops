@@ -19,6 +19,9 @@ package k8sapi
 import (
 	"crypto/x509"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,8 +30,6 @@ import (
 	"k8s.io/kops/pkg/pki"
 	"k8s.io/kops/upup/pkg/fi"
 	"k8s.io/kops/util/pkg/vfs"
-	"math/big"
-	"time"
 )
 
 type KubernetesKeystore struct {
@@ -51,12 +52,12 @@ func NewKubernetesKeystore(client kubernetes.Interface, namespace string) fi.Key
 	return c
 }
 
-func (c *KubernetesKeystore) issueCert(id string, serial *big.Int, privateKey *pki.PrivateKey, template *x509.Certificate) (*pki.Certificate, error) {
+func (c *KubernetesKeystore) issueCert(signer string, id string, serial *big.Int, privateKey *pki.PrivateKey, template *x509.Certificate) (*pki.Certificate, error) {
 	glog.Infof("Issuing new certificate: %q", id)
 
 	template.SerialNumber = serial
 
-	caCert, caKey, err := c.FindKeypair(fi.CertificateId_CA)
+	caCert, caKey, err := c.FindKeypair(signer)
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +108,11 @@ func (c *KubernetesKeystore) FindKeypair(id string) (*pki.Certificate, *pki.Priv
 	return keypair.Certificate, keypair.PrivateKey, nil
 }
 
-func (c *KubernetesKeystore) CreateKeypair(id string, template *x509.Certificate, privateKey *pki.PrivateKey) (*pki.Certificate, error) {
+func (c *KubernetesKeystore) CreateKeypair(signer string, id string, template *x509.Certificate, privateKey *pki.PrivateKey) (*pki.Certificate, error) {
 	t := time.Now().UnixNano()
 	serial := pki.BuildPKISerial(t)
 
-	cert, err := c.issueCert(id, serial, privateKey, template)
+	cert, err := c.issueCert(signer, id, serial, privateKey, template)
 	if err != nil {
 		return nil, err
 	}

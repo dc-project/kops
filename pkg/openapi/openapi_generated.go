@@ -20811,15 +20811,18 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/kops/pkg/apis/kops/v1alpha1.AccessSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
+					Description: "AccessSpec provides configuration details related to kubeapi dns and ELB access",
 					Properties: map[string]spec.Schema{
 						"dns": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kops/pkg/apis/kops/v1alpha1.DNSAccessSpec"),
+								Description: "DNS wil be used to provide config on kube-apiserver elb dns",
+								Ref:         ref("k8s.io/kops/pkg/apis/kops/v1alpha1.DNSAccessSpec"),
 							},
 						},
 						"loadBalancer": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kops/pkg/apis/kops/v1alpha1.LoadBalancerAccessSpec"),
+								Description: "LoadBalancer is the configuration for the kube-apiserver ELB",
+								Ref:         ref("k8s.io/kops/pkg/apis/kops/v1alpha1.LoadBalancerAccessSpec"),
 							},
 						},
 					},
@@ -21374,6 +21377,20 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"additionalSans": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AdditionalSANs adds additional Subject Alternate Names to apiserver cert that kops generates",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
 						"clusterDNSDomain": {
 							SchemaProps: spec.SchemaProps{
 								Description: "ClusterDNSDomain is the suffix we use for internal DNS names (normally cluster.local)",
@@ -21889,11 +21906,23 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"leaderElectionTimeout": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LeaderElectionTimeout is the time (in milliseconds) for an etcd leader election timeout",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"heartbeatInterval": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HeartbeatInterval is the time (in milliseconds) for an etcd heartbeat interval",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kops/pkg/apis/kops/v1alpha1.EtcdMemberSpec"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/kops/pkg/apis/kops/v1alpha1.EtcdMemberSpec"},
 		},
 		"k8s.io/kops/pkg/apis/kops/v1alpha1.EtcdMemberSpec": {
 			Schema: spec.Schema{
@@ -21997,6 +22026,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "ExternalDNSConfig are options of the dns-controller",
 					Properties: map[string]spec.Schema{
+						"disable": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Disable indicates we do not wish to run the dns-controller addon",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
 						"watchIngress": {
 							SchemaProps: spec.SchemaProps{
 								Description: "WatchIngress indicates you want the dns-controller to watch and create dns entries for ingress resources",
@@ -22324,6 +22360,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format: "",
 							},
 						},
+						"allowContainerRegistry": {
+							SchemaProps: spec.SchemaProps{
+								Type:   []string{"boolean"},
+								Format: "",
+							},
+						},
 					},
 					Required: []string{"legacy"},
 				},
@@ -22584,6 +22626,19 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								},
 							},
 						},
+						"additionalUserData": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AdditionalUserData is any aditional user-data to be passed to the host",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/kops/pkg/apis/kops/v1alpha1.UserData"),
+										},
+									},
+								},
+							},
+						},
 						"zones": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Zones is the names of the Zones where machines in this instance group should be placed This is needed for regional subnets (e.g. GCE), to restrict placement to particular zones",
@@ -22602,7 +22657,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kops/pkg/apis/kops/v1alpha1.FileAssetSpec", "k8s.io/kops/pkg/apis/kops/v1alpha1.HookSpec", "k8s.io/kops/pkg/apis/kops/v1alpha1.KubeletConfigSpec"},
+				"k8s.io/kops/pkg/apis/kops/v1alpha1.FileAssetSpec", "k8s.io/kops/pkg/apis/kops/v1alpha1.HookSpec", "k8s.io/kops/pkg/apis/kops/v1alpha1.KubeletConfigSpec", "k8s.io/kops/pkg/apis/kops/v1alpha1.UserData"},
 		},
 		"k8s.io/kops/pkg/apis/kops/v1alpha1.KopeioAuthenticationSpec": {
 			Schema: spec.Schema{
@@ -22740,7 +22795,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"etcdKeyFile": {
 							SchemaProps: spec.SchemaProps{
-								Description: "EtcdKeyFile is the path to a orivate key",
+								Description: "EtcdKeyFile is the path to a private key",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -22922,6 +22977,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "int32",
 							},
 						},
+						"auditPolicyFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AuditPolicyFile is the full path to a advanced audit configuration file a.g. /srv/kubernetes/audit.conf",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 						"authenticationTokenWebhookConfigFile": {
 							SchemaProps: spec.SchemaProps{
 								Description: "File with webhook configuration for token authentication in kubeconfig format. The API server will query the remote service to determine authentication for bearer tokens.",
@@ -22954,6 +23016,83 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Description: "ExperimentalEncryptionProviderConfig enables encryption at rest for secrets.",
 								Type:        []string{"string"},
 								Format:      "",
+							},
+						},
+						"requestheaderUsernameHeaders": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of request headers to inspect for usernames. X-Remote-User is common.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"requestheaderGroupHeaders": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of request headers to inspect for groups. X-Remote-Group is suggested.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"requestheaderExtraHeaderPrefixes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of request header prefixes to inspect. X-Remote-Extra- is suggested.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"requestheaderClientCAFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Root certificate bundle to use to verify client certificates on incoming requests before trusting usernames in headers specified by --requestheader-username-headers",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"requestheaderAllowedNames": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of client certificate common names to allow to provide usernames in headers specified by --requestheader-username-headers. If empty, any client certificate validated by the authorities in --requestheader-client-ca-file is allowed.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"featureGates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
 							},
 						},
 					},
@@ -23063,6 +23202,45 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"horizontalPodAutoscalerSyncPeriod": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerSyncPeriod is the amount of time between syncs During each period, the controller manager queries the resource utilization against the metrics specified in each HorizontalPodAutoscaler definition.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"horizontalPodAutoscalerDownscaleDelay": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerDownscaleDelay is a duration that specifies how long the autoscaler has to wait before another downscale operation can be performed after the current one has completed.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"horizontalPodAutoscalerUpscaleDelay": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerUpscaleDelay is a duration that specifies how long the autoscaler has to wait before another upscale operation can be performed after the current one has completed.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"horizontalPodAutoscalerUseRestClients": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerUseRestClients determines if the new-style clients should be used if support for custom metrics is enabled.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"featureGates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -23076,14 +23254,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					Properties: map[string]spec.Schema{
 						"image": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Image is the name of the docker image to run",
+								Description: "Image is the name of the docker image to run Deprecated as this is now in the addon",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
 						"replicas": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Replicas is the number of pod replicas",
+								Description: "Replicas is the number of pod replicas Deprecated as this is now in the addon, and controlled by autoscaler",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
@@ -23152,6 +23330,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"enabled": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Enabled allows enabling or disabling kube-proxy",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
 						"featureGates": {
 							SchemaProps: spec.SchemaProps{
 								Description: "FeatureGates is a series of key pairs used to switch on features for the proxy",
@@ -23202,6 +23387,27 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							SchemaProps: spec.SchemaProps{
 								Description: "LeaderElection defines the configuration of leader election client.",
 								Ref:         ref("k8s.io/kops/pkg/apis/kops/v1alpha1.LeaderElectionConfiguration"),
+							},
+						},
+						"usePolicyConfigMap": {
+							SchemaProps: spec.SchemaProps{
+								Description: "UsePolicyConfigMap enable setting the scheduler policy from a configmap",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"featureGates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
 							},
 						},
 					},
@@ -23913,6 +24119,37 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			Dependencies: []string{
 				"k8s.io/kops/pkg/apis/kops/v1alpha1.BastionSpec", "k8s.io/kops/pkg/apis/kops/v1alpha1.DNSSpec"},
 		},
+		"k8s.io/kops/pkg/apis/kops/v1alpha1.UserData": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "UserData defines a user-data section",
+					Properties: map[string]spec.Schema{
+						"name": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Name is the name of the user-data",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type is the type of user-data",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"content": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Content is the user-data content",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
+		},
 		"k8s.io/kops/pkg/apis/kops/v1alpha1.WeaveNetworkingSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -23932,15 +24169,18 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/kops/pkg/apis/kops/v1alpha2.AccessSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
+					Description: "AccessSpec provides configuration details related to kubeapi dns and ELB access",
 					Properties: map[string]spec.Schema{
 						"dns": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kops/pkg/apis/kops/v1alpha2.DNSAccessSpec"),
+								Description: "DNS wil be used to provide config on kube-apiserver elb dns",
+								Ref:         ref("k8s.io/kops/pkg/apis/kops/v1alpha2.DNSAccessSpec"),
 							},
 						},
 						"loadBalancer": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kops/pkg/apis/kops/v1alpha2.LoadBalancerAccessSpec"),
+								Description: "LoadBalancer is the configuration for the kube-apiserver ELB",
+								Ref:         ref("k8s.io/kops/pkg/apis/kops/v1alpha2.LoadBalancerAccessSpec"),
 							},
 						},
 					},
@@ -24478,6 +24718,20 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Description: "DNSZone is the DNS zone we should use when configuring DNS This is because some clouds let us define a managed zone foo.bar, and then have kubernetes.dev.foo.bar, without needing to define dev.foo.bar as a hosted zone. DNSZone will probably be a suffix of the MasterPublicName and MasterInternalName Note that DNSZone can either by the host name of the zone (containing dots), or can be an identifier for the zone.",
 								Type:        []string{"string"},
 								Format:      "",
+							},
+						},
+						"additionalSans": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AdditionalSANs adds additional Subject Alternate Names to apiserver cert that kops generates",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
 							},
 						},
 						"clusterDNSDomain": {
@@ -25030,11 +25284,23 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"leaderElectionTimeout": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LeaderElectionTimeout is the time (in milliseconds) for an etcd leader election timeout",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"heartbeatInterval": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HeartbeatInterval is the time (in milliseconds) for an etcd heartbeat interval",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kops/pkg/apis/kops/v1alpha2.EtcdMemberSpec"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/kops/pkg/apis/kops/v1alpha2.EtcdMemberSpec"},
 		},
 		"k8s.io/kops/pkg/apis/kops/v1alpha2.EtcdMemberSpec": {
 			Schema: spec.Schema{
@@ -25138,6 +25404,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 				SchemaProps: spec.SchemaProps{
 					Description: "ExternalDNSConfig are options of the dns-controller",
 					Properties: map[string]spec.Schema{
+						"disable": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Disable indicates we do not wish to run the dns-controller addon",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
 						"watchIngress": {
 							SchemaProps: spec.SchemaProps{
 								Description: "WatchIngress indicates you want the dns-controller to watch and create dns entries for ingress resources",
@@ -25465,6 +25738,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format: "",
 							},
 						},
+						"allowContainerRegistry": {
+							SchemaProps: spec.SchemaProps{
+								Type:   []string{"boolean"},
+								Format: "",
+							},
+						},
 					},
 					Required: []string{"legacy"},
 				},
@@ -25753,11 +26032,24 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								},
 							},
 						},
+						"additionalUserData": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AdditionalUserData is any aditional user-data to be passed to the host",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/kops/pkg/apis/kops/v1alpha2.UserData"),
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kops/pkg/apis/kops/v1alpha2.FileAssetSpec", "k8s.io/kops/pkg/apis/kops/v1alpha2.HookSpec", "k8s.io/kops/pkg/apis/kops/v1alpha2.KubeletConfigSpec"},
+				"k8s.io/kops/pkg/apis/kops/v1alpha2.FileAssetSpec", "k8s.io/kops/pkg/apis/kops/v1alpha2.HookSpec", "k8s.io/kops/pkg/apis/kops/v1alpha2.KubeletConfigSpec", "k8s.io/kops/pkg/apis/kops/v1alpha2.UserData"},
 		},
 		"k8s.io/kops/pkg/apis/kops/v1alpha2.Keyset": {
 			Schema: spec.Schema{
@@ -26035,7 +26327,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 						},
 						"etcdKeyFile": {
 							SchemaProps: spec.SchemaProps{
-								Description: "EtcdKeyFile is the path to a orivate key",
+								Description: "EtcdKeyFile is the path to a private key",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -26217,6 +26509,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "int32",
 							},
 						},
+						"auditPolicyFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AuditPolicyFile is the full path to a advanced audit configuration file a.g. /srv/kubernetes/audit.conf",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 						"authenticationTokenWebhookConfigFile": {
 							SchemaProps: spec.SchemaProps{
 								Description: "File with webhook configuration for token authentication in kubeconfig format. The API server will query the remote service to determine authentication for bearer tokens.",
@@ -26249,6 +26548,83 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Description: "ExperimentalEncryptionProviderConfig enables encryption at rest for secrets.",
 								Type:        []string{"string"},
 								Format:      "",
+							},
+						},
+						"requestheaderUsernameHeaders": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of request headers to inspect for usernames. X-Remote-User is common.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"requestheaderGroupHeaders": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of request headers to inspect for groups. X-Remote-Group is suggested.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"requestheaderExtraHeaderPrefixes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of request header prefixes to inspect. X-Remote-Extra- is suggested.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"requestheaderClientCAFile": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Root certificate bundle to use to verify client certificates on incoming requests before trusting usernames in headers specified by --requestheader-username-headers",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"requestheaderAllowedNames": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of client certificate common names to allow to provide usernames in headers specified by --requestheader-username-headers. If empty, any client certificate validated by the authorities in --requestheader-client-ca-file is allowed.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"featureGates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
 							},
 						},
 					},
@@ -26358,6 +26734,45 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"horizontalPodAutoscalerSyncPeriod": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerSyncPeriod is the amount of time between syncs During each period, the controller manager queries the resource utilization against the metrics specified in each HorizontalPodAutoscaler definition.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"horizontalPodAutoscalerDownscaleDelay": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerDownscaleDelay is a duration that specifies how long the autoscaler has to wait before another downscale operation can be performed after the current one has completed.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"horizontalPodAutoscalerUpscaleDelay": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerUpscaleDelay is a duration that specifies how long the autoscaler has to wait before another upscale operation can be performed after the current one has completed.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"horizontalPodAutoscalerUseRestClients": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HorizontalPodAutoscalerUseRestClients determines if the new-style clients should be used if support for custom metrics is enabled.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"featureGates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -26370,15 +26785,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 					Properties: map[string]spec.Schema{
 						"image": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Image is the name of the docker image to run",
+								Description: "Image is the name of the docker image to run Deprecated as this is now in the addon",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
 						"replicas": {
 							SchemaProps: spec.SchemaProps{
-								Type:   []string{"integer"},
-								Format: "int32",
+								Description: "Deprecated as this is now in the addon, and controlled by autoscaler",
+								Type:        []string{"integer"},
+								Format:      "int32",
 							},
 						},
 						"domain": {
@@ -26443,6 +26859,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 								Format:      "",
 							},
 						},
+						"enabled": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Enabled allows enabling or disabling kube-proxy",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
 						"featureGates": {
 							SchemaProps: spec.SchemaProps{
 								Description: "FeatureGates is a series of key pairs used to switch on features for the proxy",
@@ -26493,6 +26916,27 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 							SchemaProps: spec.SchemaProps{
 								Description: "LeaderElection defines the configuration of leader election client.",
 								Ref:         ref("k8s.io/kops/pkg/apis/kops/v1alpha2.LeaderElectionConfiguration"),
+							},
+						},
+						"usePolicyConfigMap": {
+							SchemaProps: spec.SchemaProps{
+								Description: "UsePolicyConfigMap enable setting the scheduler policy from a configmap",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"featureGates": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
 							},
 						},
 					},
@@ -27203,6 +27647,37 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 			},
 			Dependencies: []string{
 				"k8s.io/kops/pkg/apis/kops/v1alpha2.BastionSpec", "k8s.io/kops/pkg/apis/kops/v1alpha2.DNSSpec"},
+		},
+		"k8s.io/kops/pkg/apis/kops/v1alpha2.UserData": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "UserData defines a user-data section",
+					Properties: map[string]spec.Schema{
+						"name": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Name is the name of the user-data",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type is the type of user-data",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"content": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Content is the user-data content",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"k8s.io/kops/pkg/apis/kops/v1alpha2.WeaveNetworkingSpec": {
 			Schema: spec.Schema{

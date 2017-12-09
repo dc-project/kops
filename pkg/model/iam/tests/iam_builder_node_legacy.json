@@ -31,6 +31,16 @@
       "Resource": "arn:aws:s3:::kops-tests/iam-builder-test.k8s.local/*"
     },
     {
+      "Sid": "",
+      "Effect": "Allow",
+      "Action": [
+        "route53:ListHostedZones"
+      ],
+      "Resource": [
+        "*"
+      ]
+    },
+    {
       "Sid": "kopsK8sECR",
       "Effect": "Allow",
       "Action": [
@@ -41,16 +51,6 @@
         "ecr:DescribeRepositories",
         "ecr:ListImages",
         "ecr:BatchGetImage"
-      ],
-      "Resource": [
-        "*"
-      ]
-    },
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Action": [
-        "route53:ListHostedZones"
       ],
       "Resource": [
         "*"

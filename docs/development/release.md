@@ -73,7 +73,7 @@ git push --tags
 For the time being, we are also maintaining a release branch.  We push released
 versions to that.
 
-`git push origin release`
+`git push origin release-1.7:release`
 
 ## Upload to github
 
@@ -86,7 +86,12 @@ make release-github
 
 ## Compile release notes
 
-e.g. `git log 1.5.0-alpha2..1.5.0-alpha3 > /tmp/relnotes`
+e.g.
+
+```
+git log 1.8.0-beta.1..1.8.0-beta.2 --oneline | grep Merge.pull | cut -f 5 -d ' ' | tac  > ~/shipbot/prs
+
+```
 
 ## On github
 

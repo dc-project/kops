@@ -19,6 +19,7 @@ package fitasks
 import (
 	"github.com/golang/glog"
 	"k8s.io/kops/upup/pkg/fi"
+	"k8s.io/kops/upup/pkg/fi/secrets"
 	"k8s.io/kops/util/pkg/vfs"
 )
 
@@ -45,6 +46,12 @@ func (e *MirrorSecrets) GetDependencies(tasks map[string]fi.Task) []fi.Task {
 
 // Find implements fi.Task::Find
 func (e *MirrorSecrets) Find(c *fi.Context) (*MirrorSecrets, error) {
+	if vfsSecretStore, ok := c.SecretStore.(*secrets.VFSSecretStore); ok {
+		if vfsSecretStore.VFSPath().Path() == e.MirrorPath.Path() {
+			return e, nil
+		}
+	}
+
 	// TODO: implement Find so that we aren't always mirroring
 	glog.V(2).Infof("MirrorSecrets::Find not implemented; always copying (inefficient)")
 	return nil, nil
@@ -68,6 +75,5 @@ func (s *MirrorSecrets) CheckChanges(a, e, changes *MirrorSecrets) error {
 // Render implements fi.Task::Render
 func (_ *MirrorSecrets) Render(c *fi.Context, a, e, changes *MirrorSecrets) error {
 	secrets := c.SecretStore
-
 	return secrets.MirrorTo(e.MirrorPath)
 }

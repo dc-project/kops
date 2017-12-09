@@ -587,11 +587,20 @@ resource "aws_security_group_rule" "node-egress" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
-resource "aws_security_group_rule" "node-to-master-tcp-1-4000" {
+resource "aws_security_group_rule" "node-to-master-tcp-1-2379" {
   type                     = "ingress"
   security_group_id        = "${aws_security_group.masters-privatedns1-example-com.id}"
   source_security_group_id = "${aws_security_group.nodes-privatedns1-example-com.id}"
   from_port                = 1
+  to_port                  = 2379
+  protocol                 = "tcp"
+}
+
+resource "aws_security_group_rule" "node-to-master-tcp-2382-4000" {
+  type                     = "ingress"
+  security_group_id        = "${aws_security_group.masters-privatedns1-example-com.id}"
+  source_security_group_id = "${aws_security_group.nodes-privatedns1-example-com.id}"
+  from_port                = 2382
   to_port                  = 4000
   protocol                 = "tcp"
 }
@@ -641,6 +650,7 @@ resource "aws_subnet" "us-test-1a-privatedns1-example-com" {
     KubernetesCluster                               = "privatedns1.example.com"
     Name                                            = "us-test-1a.privatedns1.example.com"
     "kubernetes.io/cluster/privatedns1.example.com" = "owned"
+    "kubernetes.io/role/internal-elb"               = "1"
   }
 }
 
@@ -653,6 +663,7 @@ resource "aws_subnet" "utility-us-test-1a-privatedns1-example-com" {
     KubernetesCluster                               = "privatedns1.example.com"
     Name                                            = "utility-us-test-1a.privatedns1.example.com"
     "kubernetes.io/cluster/privatedns1.example.com" = "owned"
+    "kubernetes.io/role/elb"                        = "1"
   }
 }
 

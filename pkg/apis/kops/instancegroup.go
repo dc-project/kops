@@ -25,6 +25,9 @@ import (
 
 const LabelClusterName = "kops.k8s.io/cluster"
 
+// NodeLabelInstanceGroup is a node label set to the name of the instance group
+const NodeLabelInstanceGroup = "kops.k8s.io/instancegroup"
+
 // Deprecated - use the new labels & taints node-role.kubernetes.io/master and node-role.kubernetes.io/node
 const TaintNoScheduleMaster15 = "dedicated=master:NoSchedule"
 
@@ -109,6 +112,18 @@ type InstanceGroupSpec struct {
 	Kubelet *KubeletConfigSpec `json:"kubelet,omitempty"`
 	// Taints indicates the kubernetes taints for nodes in this group
 	Taints []string `json:"taints,omitempty"`
+	// AdditionalUserData is any aditional user-data to be passed to the host
+	AdditionalUserData []UserData `json:"additionalUserData,omitempty"`
+}
+
+// UserData defines a user-data section
+type UserData struct {
+	// Name is the name of the user-data
+	Name string `json:"name,omitempty"`
+	// Type is the type of user-data
+	Type string `json:"type,omitempty"`
+	// Content is the user-data content
+	Content string `json:"content,omitempty"`
 }
 
 // PerformAssignmentsInstanceGroups populates InstanceGroups with default values
@@ -150,5 +165,15 @@ func (g *InstanceGroup) IsMaster() bool {
 	default:
 		glog.Fatalf("Role not set in group %v", g)
 		return false
+	}
+}
+
+func (g *InstanceGroup) AddInstanceGroupNodeLabel() {
+	if g.Spec.NodeLabels == nil {
+		nodeLabels := make(map[string]string)
+		nodeLabels[NodeLabelInstanceGroup] = g.Name
+		g.Spec.NodeLabels = nodeLabels
+	} else {
+		g.Spec.NodeLabels[NodeLabelInstanceGroup] = g.Name
 	}
 }

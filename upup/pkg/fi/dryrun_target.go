@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 
@@ -28,7 +29,6 @@ import (
 	"k8s.io/kops/pkg/assets"
 	"k8s.io/kops/pkg/diff"
 	"k8s.io/kops/upup/pkg/fi/utils"
-	"sort"
 )
 
 // DryRunTarget is a special Target that does not execute anything, but instead tracks all changes.
@@ -339,7 +339,18 @@ func buildChangeList(a, e, changes Task) ([]change, error) {
 }
 
 func tryResourceAsString(v reflect.Value) (string, bool) {
+	if !v.IsValid() {
+		return "", false
+	}
 	if !v.CanInterface() {
+		return "", false
+	}
+
+	// Guard against nil interface go-tcha
+	if v.Kind() == reflect.Interface && v.IsNil() {
+		return "", false
+	}
+	if v.Kind() == reflect.Ptr && v.IsNil() {
 		return "", false
 	}
 

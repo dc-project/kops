@@ -18,6 +18,7 @@ package vfsclientset
 
 import (
 	"fmt"
+
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,6 +36,7 @@ type InstanceGroupVFS struct {
 	commonVFS
 
 	clusterName string
+	cluster     *kops.Cluster
 }
 
 type InstanceGroupMirror interface {
@@ -43,10 +45,16 @@ type InstanceGroupMirror interface {
 
 var _ InstanceGroupMirror = &InstanceGroupVFS{}
 
-func NewInstanceGroupMirror(clusterName string, configBase vfs.Path) InstanceGroupMirror {
+func NewInstanceGroupMirror(cluster *kops.Cluster, configBase vfs.Path) InstanceGroupMirror {
+	if cluster == nil || cluster.Name == "" {
+		glog.Fatalf("cluster / cluster.Name is required")
+	}
+
+	clusterName := cluster.Name
 	kind := "InstanceGroup"
 
 	r := &InstanceGroupVFS{
+		cluster:     cluster,
 		clusterName: clusterName,
 	}
 	r.init(kind, configBase.Join("instancegroup"), StoreVersion)
@@ -58,14 +66,16 @@ func NewInstanceGroupMirror(clusterName string, configBase vfs.Path) InstanceGro
 	return r
 }
 
-func newInstanceGroupVFS(c *VFSClientset, clusterName string) *InstanceGroupVFS {
-	if clusterName == "" {
-		glog.Fatalf("clusterName is required")
+func newInstanceGroupVFS(c *VFSClientset, cluster *kops.Cluster) *InstanceGroupVFS {
+	if cluster == nil || cluster.Name == "" {
+		glog.Fatalf("cluster / cluster.Name is required")
 	}
 
+	clusterName := cluster.Name
 	kind := "InstanceGroup"
 
 	r := &InstanceGroupVFS{
+		cluster:     cluster,
 		clusterName: clusterName,
 	}
 	r.init(kind, c.basePath.Join(clusterName, "instancegroup"), StoreVersion)
@@ -119,7 +129,7 @@ func (c *InstanceGroupVFS) List(options metav1.ListOptions) (*api.InstanceGroupL
 }
 
 func (c *InstanceGroupVFS) Create(g *api.InstanceGroup) (*api.InstanceGroup, error) {
-	err := c.create(g)
+	err := c.create(c.cluster, g)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +137,7 @@ func (c *InstanceGroupVFS) Create(g *api.InstanceGroup) (*api.InstanceGroup, err
 }
 
 func (c *InstanceGroupVFS) Update(g *api.InstanceGroup) (*api.InstanceGroup, error) {
-	err := c.update(g)
+	err := c.update(c.cluster, g)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +145,7 @@ func (c *InstanceGroupVFS) Update(g *api.InstanceGroup) (*api.InstanceGroup, err
 }
 
 func (c *InstanceGroupVFS) WriteMirror(g *api.InstanceGroup) error {
-	err := c.writeConfig(c.basePath.Join(g.Name), g)
+	err := c.writeConfig(c.cluster, c.basePath.Join(g.Name), g)
 	if err != nil {
 		return fmt.Errorf("error writing %s: %v", c.kind, err)
 	}

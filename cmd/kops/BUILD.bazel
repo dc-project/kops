@@ -53,6 +53,7 @@ go_library(
         "validate_cluster.go",
         "version.go",
     ],
+    importpath = "k8s.io/kops/cmd/kops",
     visibility = ["//visibility:private"],
     deps = [
         "//:go_default_library",
@@ -76,7 +77,7 @@ go_library(
         "//pkg/kubeconfig:go_default_library",
         "//pkg/pretty:go_default_library",
         "//pkg/resources:go_default_library",
-        "//pkg/resources/tracker:go_default_library",
+        "//pkg/resources/ops:go_default_library",
         "//pkg/util/templater:go_default_library",
         "//pkg/validation:go_default_library",
         "//upup/pkg/fi:go_default_library",
@@ -91,6 +92,7 @@ go_library(
         "//util/pkg/vfs:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/blang/semver:go_default_library",
+        "//vendor/github.com/ghodss/yaml:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/github.com/spf13/cobra/doc:go_default_library",
@@ -114,10 +116,11 @@ go_library(
 
 go_binary(
     name = "kops",
+    importpath = "k8s.io/kops/cmd/kops",
     library = ":go_default_library",
     visibility = ["//visibility:public"],
     x_defs = {
-        "k8s.io/kops.Version": "1.8.0-alpha.1",  # keep
+        "k8s.io/kops.Version": "1.8.0-beta.2",  # keep
         "k8s.io/kops.GitVersion": "{BUILD_SCM_REVISION}",  # keep
     },
 )
@@ -136,6 +139,7 @@ go_test(
         "//tests/integration/create_cluster:exported_testdata",  # keep
         "//tests/integration/update_cluster:exported_testdata",  # keep
     ],
+    importpath = "k8s.io/kops/cmd/kops",
     library = ":go_default_library",
     deps = [
         "//cmd/kops/util:go_default_library",
@@ -145,6 +149,7 @@ go_test(
         "//pkg/jsonutils:go_default_library",
         "//pkg/kopscodecs:go_default_library",
         "//pkg/testutils:go_default_library",
+        "//upup/pkg/fi/cloudup:go_default_library",
         "//upup/pkg/fi/cloudup/gce:go_default_library",
         "//util/pkg/ui:go_default_library",
         "//vendor/github.com/ghodss/yaml:go_default_library",

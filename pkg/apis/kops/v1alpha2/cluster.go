@@ -84,6 +84,8 @@ type ClusterSpec struct {
 	// Note that DNSZone can either by the host name of the zone (containing dots),
 	// or can be an identifier for the zone.
 	DNSZone string `json:"dnsZone,omitempty"`
+	// AdditionalSANs adds additional Subject Alternate Names to apiserver cert that kops generates
+	AdditionalSANs []string `json:"additionalSans,omitempty"`
 	// ClusterDNSDomain is the suffix we use for internal DNS names (normally cluster.local)
 	ClusterDNSDomain string `json:"clusterDNSDomain,omitempty"`
 	// ServiceClusterIPRange is the CIDR, from the internal network, where we allocate IPs for services
@@ -180,7 +182,8 @@ type Assets struct {
 
 // IAMSpec adds control over the IAM security policies applied to resources
 type IAMSpec struct {
-	Legacy bool `json:"legacy"`
+	Legacy                 bool `json:"legacy"`
+	AllowContainerRegistry bool `json:"allowContainerRegistry,omitempty"`
 }
 
 // HookSpec is a definition hook
@@ -237,8 +240,11 @@ type RBACAuthorizationSpec struct {
 type AlwaysAllowAuthorizationSpec struct {
 }
 
+// AccessSpec provides configuration details related to kubeapi dns and ELB access
 type AccessSpec struct {
-	DNS          *DNSAccessSpec          `json:"dns,omitempty"`
+	// DNS wil be used to provide config on kube-apiserver elb dns
+	DNS *DNSAccessSpec `json:"dns,omitempty"`
+	// LoadBalancer is the configuration for the kube-apiserver ELB
 	LoadBalancer *LoadBalancerAccessSpec `json:"loadBalancer,omitempty"`
 }
 
@@ -264,8 +270,10 @@ type LoadBalancerAccessSpec struct {
 
 type KubeDNSConfig struct {
 	// Image is the name of the docker image to run
+	// Deprecated as this is now in the addon
 	Image string `json:"image,omitempty"`
 
+	// Deprecated as this is now in the addon, and controlled by autoscaler
 	Replicas int    `json:"replicas,omitempty"`
 	Domain   string `json:"domain,omitempty"`
 	ServerIP string `json:"serverIP,omitempty"`
@@ -273,6 +281,8 @@ type KubeDNSConfig struct {
 
 // ExternalDNSConfig are options of the dns-controller
 type ExternalDNSConfig struct {
+	// Disable indicates we do not wish to run the dns-controller addon
+	Disable bool `json:"disable,omitempty"`
 	// WatchIngress indicates you want the dns-controller to watch and create dns entries for ingress resources
 	WatchIngress *bool `json:"watchIngress,omitempty"`
 	// WatchNamespace is namespace to watch, detaults to all (use to control whom can creates dns entries)
@@ -289,6 +299,10 @@ type EtcdClusterSpec struct {
 	EnableEtcdTLS bool `json:"enableEtcdTLS,omitempty"`
 	// Version is the version of etcd to run i.e. 2.1.2, 3.0.17 etcd
 	Version string `json:"version,omitempty"`
+	// LeaderElectionTimeout is the time (in milliseconds) for an etcd leader election timeout
+	LeaderElectionTimeout *metav1.Duration `json:"leaderElectionTimeout,omitempty"`
+	// HeartbeatInterval is the time (in milliseconds) for an etcd heartbeat interval
+	HeartbeatInterval *metav1.Duration `json:"heartbeatInterval,omitempty"`
 }
 
 // EtcdMemberSpec is a specification for a etcd member

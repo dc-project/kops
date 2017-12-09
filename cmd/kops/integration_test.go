@@ -42,6 +42,7 @@ import (
 	"github.com/ghodss/yaml"
 	"golang.org/x/crypto/ssh"
 	"k8s.io/kops/pkg/featureflag"
+	"k8s.io/kops/upup/pkg/fi/cloudup"
 	"k8s.io/kops/upup/pkg/fi/cloudup/gce"
 )
 
@@ -76,6 +77,11 @@ func TestComplex(t *testing.T) {
 // TestMinimalCloudformation runs the test on a minimum configuration, similar to kops create cluster minimal.example.com --zones us-west-1a
 func TestMinimalCloudformation(t *testing.T) {
 	runTestCloudformation(t, "minimal.example.com", "minimal-cloudformation", "v1alpha2", false)
+}
+
+// TestAdditionalUserData runs the test on passing additional user-data to an instance at bootstrap.
+func TestAdditionalUserData(t *testing.T) {
+	runTestCloudformation(t, "additionaluserdata.example.com", "additional_user-data", "v1alpha2", false)
 }
 
 // TestMinimal_141 runs the test on a configuration from 1.4.1 release
@@ -132,12 +138,34 @@ func TestSharedVPC(t *testing.T) {
 	runTestAWS(t, "sharedvpc.example.com", "shared_vpc", "v1alpha2", false, 1)
 }
 
-func runTest(t *testing.T, h *testutils.IntegrationTestHarness, clusterName string, srcDir string, version string, private bool, zones int, expectedFilenames []string) {
+// TestPhaseNetwork tests the output of tf for the network phase
+func TestPhaseNetwork(t *testing.T) {
+	runTestPhase(t, "privateweave.example.com", "lifecycle_phases", "v1alpha2", true, 1, cloudup.PhaseNetwork)
+}
+
+// TestPhaseIAM tests the output of tf for the iam phase
+func TestPhaseIAM(t *testing.T) {
+	runTestPhase(t, "privateweave.example.com", "lifecycle_phases", "v1alpha2", true, 1, cloudup.PhaseSecurity)
+}
+
+// TestPhaseCluster tests the output of tf for the cluster phase
+func TestPhaseCluster(t *testing.T) {
+	// TODO fix tf for phase, and allow override on validation
+	t.Skip("unable to test w/o allowing failed validation")
+	runTestPhase(t, "privateweave.example.com", "lifecycle_phases", "v1alpha2", true, 1, cloudup.PhaseCluster)
+}
+
+func runTest(t *testing.T, h *testutils.IntegrationTestHarness, clusterName string, srcDir string, version string, private bool, zones int, expectedFilenames []string, tfFileName string, phase *cloudup.Phase) {
 	var stdout bytes.Buffer
 
 	srcDir = updateClusterTestBase + srcDir
 	inputYAML := "in-" + version + ".yaml"
-	expectedTFPath := "kubernetes.tf"
+	testDataTFPath := "kubernetes.tf"
+	actualTFPath := "kubernetes.tf"
+
+	if tfFileName != "" {
+		testDataTFPath = tfFileName
+	}
 
 	factoryOptions := &util.FactoryOptions{}
 	factoryOptions.RegistryPath = "memfs://tests"
@@ -172,6 +200,9 @@ func runTest(t *testing.T, h *testutils.IntegrationTestHarness, clusterName stri
 		options.Target = "terraform"
 		options.OutDir = path.Join(h.TempDir, "out")
 		options.MaxTaskDuration = 30 * time.Second
+		if phase != nil {
+			options.Phase = string(*phase)
+		}
 
 		// We don't test it here, and it adds a dependency on kubectl
 		options.CreateKubecfg = false
@@ -196,30 +227,35 @@ func runTest(t *testing.T, h *testutils.IntegrationTestHarness, clusterName stri
 		sort.Strings(fileNames)
 
 		actualFilenames := strings.Join(fileNames, ",")
-		expectedFilenames := "data,kubernetes.tf"
-		if actualFilenames != expectedFilenames {
-			t.Fatalf("unexpected files.  actual=%q, expected=%q", actualFilenames, expectedFilenames)
+		expected := "kubernetes.tf"
+
+		if len(expectedFilenames) > 0 {
+			expected = "data,kubernetes.tf"
 		}
 
-		actualTF, err := ioutil.ReadFile(path.Join(h.TempDir, "out", "kubernetes.tf"))
+		if actualFilenames != expected {
+			t.Fatalf("unexpected files.  actual=%q, expected=%q, test=%q", actualFilenames, expected, testDataTFPath)
+		}
+
+		actualTF, err := ioutil.ReadFile(path.Join(h.TempDir, "out", actualTFPath))
 		if err != nil {
 			t.Fatalf("unexpected error reading actual terraform output: %v", err)
 		}
-		expectedTF, err := ioutil.ReadFile(path.Join(srcDir, expectedTFPath))
+		testDataTF, err := ioutil.ReadFile(path.Join(srcDir, testDataTFPath))
 		if err != nil {
 			t.Fatalf("unexpected error reading expected terraform output: %v", err)
 		}
 
-		if !bytes.Equal(actualTF, expectedTF) {
-			diffString := diff.FormatDiff(string(expectedTF), string(actualTF))
+		if !bytes.Equal(actualTF, testDataTF) {
+			diffString := diff.FormatDiff(string(testDataTF), string(actualTF))
 			t.Logf("diff:\n%s\n", diffString)
 
 			t.Fatalf("terraform output differed from expected")
 		}
 	}
 
-	// Compare data files
-	{
+	// Compare data files if they are provided
+	if len(expectedFilenames) > 0 {
 		files, err := ioutil.ReadDir(path.Join(h.TempDir, "out", "data"))
 		if err != nil {
 			t.Fatalf("failed to read data dir: %v", err)
@@ -243,6 +279,7 @@ func runTestAWS(t *testing.T, clusterName string, srcDir string, version string,
 	h := testutils.NewIntegrationTestHarness(t)
 	defer h.Close()
 
+	h.MockKopsVersion("1.7.0")
 	h.SetupMockAWS()
 
 	expectedFilenames := []string{
@@ -269,7 +306,53 @@ func runTestAWS(t *testing.T, clusterName string, srcDir string, version string,
 			// "aws_launch_configuration_bastions." + clusterName + "_user_data",
 		}...)
 	}
-	runTest(t, h, clusterName, srcDir, version, private, zones, expectedFilenames)
+	runTest(t, h, clusterName, srcDir, version, private, zones, expectedFilenames, "", nil)
+}
+
+func runTestPhase(t *testing.T, clusterName string, srcDir string, version string, private bool, zones int, phase cloudup.Phase) {
+	h := testutils.NewIntegrationTestHarness(t)
+	defer h.Close()
+
+	h.MockKopsVersion("1.7.0")
+	h.SetupMockAWS()
+	phaseName := string(phase)
+	if phaseName == "" {
+		t.Fatalf("phase must be set")
+	}
+	tfFileName := phaseName + "-kubernetes.tf"
+
+	expectedFilenames := []string{}
+
+	if phase == cloudup.PhaseSecurity {
+		expectedFilenames = []string{
+			"aws_iam_role_masters." + clusterName + "_policy",
+			"aws_iam_role_nodes." + clusterName + "_policy",
+			"aws_iam_role_policy_masters." + clusterName + "_policy",
+			"aws_iam_role_policy_nodes." + clusterName + "_policy",
+			"aws_key_pair_kubernetes." + clusterName + "-c4a6ed9aa889b9e2c39cd663eb9c7157_public_key",
+		}
+		if private {
+			expectedFilenames = append(expectedFilenames, []string{
+				"aws_iam_role_bastions." + clusterName + "_policy",
+				"aws_iam_role_policy_bastions." + clusterName + "_policy",
+
+				// bastions don't have any userdata
+				// "aws_launch_configuration_bastions." + clusterName + "_user_data",
+			}...)
+		}
+	} else if phase == cloudup.PhaseCluster {
+		expectedFilenames = []string{
+			"aws_launch_configuration_nodes." + clusterName + "_user_data",
+		}
+
+		for i := 0; i < zones; i++ {
+			zone := "us-test-1" + string([]byte{byte('a') + byte(i)})
+			s := "aws_launch_configuration_master-" + zone + ".masters." + clusterName + "_user_data"
+			expectedFilenames = append(expectedFilenames, s)
+		}
+	}
+
+	runTest(t, h, clusterName, srcDir, version, private, zones, expectedFilenames, tfFileName, &phase)
 }
 
 func runTestGCE(t *testing.T, clusterName string, srcDir string, version string, private bool, zones int) {
@@ -278,6 +361,7 @@ func runTestGCE(t *testing.T, clusterName string, srcDir string, version string,
 	h := testutils.NewIntegrationTestHarness(t)
 	defer h.Close()
 
+	h.MockKopsVersion("1.7.0")
 	h.SetupMockGCE()
 
 	expectedFilenames := []string{
@@ -293,7 +377,7 @@ func runTestGCE(t *testing.T, clusterName string, srcDir string, version string,
 		expectedFilenames = append(expectedFilenames, prefix+"startup-script")
 	}
 
-	runTest(t, h, clusterName, srcDir, version, private, zones, expectedFilenames)
+	runTest(t, h, clusterName, srcDir, version, private, zones, expectedFilenames, "", nil)
 }
 
 func runTestCloudformation(t *testing.T, clusterName string, srcDir string, version string, private bool) {
@@ -309,6 +393,7 @@ func runTestCloudformation(t *testing.T, clusterName string, srcDir string, vers
 	h := testutils.NewIntegrationTestHarness(t)
 	defer h.Close()
 
+	h.MockKopsVersion("1.7.0")
 	h.SetupMockAWS()
 
 	factory := util.NewFactory(factoryOptions)
@@ -428,21 +513,36 @@ func runTestCloudformation(t *testing.T, clusterName string, srcDir string, vers
 			t.Fatalf("cloudformation output differed from expected")
 		}
 
-		actualExtracted, err := yaml.Marshal(extracted)
-		if err != nil {
-			t.Fatalf("unexpected error serializing extracted values: %v", err)
-		}
 		expectedExtracted, err := ioutil.ReadFile(path.Join(srcDir, expectedCfPath+".extracted.yaml"))
 		if err != nil {
 			t.Fatalf("unexpected error reading expected extracted cloudformation output: %v", err)
 		}
 
-		actualExtractedTrimmed := strings.TrimSpace(string(actualExtracted))
-		expectedExtractedTrimmed := strings.TrimSpace(string(expectedExtracted))
-		if actualExtractedTrimmed != expectedExtractedTrimmed {
-			diffString := diff.FormatDiff(actualExtractedTrimmed, expectedExtractedTrimmed)
-			t.Logf("diff:\n%s\n", diffString)
-			t.Fatalf("cloudformation output differed from expected")
+		expected := make(map[string]string)
+		err = yaml.Unmarshal(expectedExtracted, &expected)
+		if err != nil {
+			t.Fatalf("unexpected error unmarshal expected extracted cloudformation output: %v", err)
+		}
+
+		if len(extracted) != len(expected) {
+			t.Fatalf("error differed number of cloudformation in expected and extracted: %v", err)
+		}
+
+		for key, expectedValue := range expected {
+			extractedValue, ok := extracted[key]
+			if !ok {
+				t.Fatalf("unexpected error expected cloudformation not found for k: %v", key)
+			}
+
+			// Strip cariage return as expectedValue is stored in a yaml string literal
+			// and golang will automaticaly strip CR from any string literal
+			extractedValueTrimmed := strings.Replace(extractedValue, "\r", "", -1)
+			if expectedValue != extractedValueTrimmed {
+
+				diffString := diff.FormatDiff(expectedValue, extractedValueTrimmed)
+				t.Logf("diff for key %s:\n%s\n\n\n\n\n\n", key, diffString)
+				t.Fatalf("cloudformation output differed from expected")
+			}
 		}
 	}
 }

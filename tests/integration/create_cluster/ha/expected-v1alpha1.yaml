@@ -31,6 +31,7 @@ spec:
       zone: us-test-1c
     name: events
   iam:
+    allowContainerRegistry: true
     legacy: false
   kubernetesVersion: v1.6.0-alpha.3
   masterPublicName: api.ha.example.com
@@ -61,10 +62,12 @@ metadata:
     kops.k8s.io/cluster: ha.example.com
   name: master-us-test-1a
 spec:
-  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-07-28
+  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-12-02
   machineType: m3.medium
   maxSize: 1
   minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: master-us-test-1a
   role: Master
   zones:
   - us-test-1a
@@ -79,10 +82,12 @@ metadata:
     kops.k8s.io/cluster: ha.example.com
   name: master-us-test-1b
 spec:
-  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-07-28
+  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-12-02
   machineType: m3.medium
   maxSize: 1
   minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: master-us-test-1b
   role: Master
   zones:
   - us-test-1b
@@ -97,10 +102,12 @@ metadata:
     kops.k8s.io/cluster: ha.example.com
   name: master-us-test-1c
 spec:
-  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-07-28
+  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-12-02
   machineType: m3.medium
   maxSize: 1
   minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: master-us-test-1c
   role: Master
   zones:
   - us-test-1c
@@ -115,10 +122,12 @@ metadata:
     kops.k8s.io/cluster: ha.example.com
   name: nodes
 spec:
-  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-07-28
+  image: kope.io/k8s-1.5-debian-jessie-amd64-hvm-ebs-2017-12-02
   machineType: t2.medium
   maxSize: 2
   minSize: 2
+  nodeLabels:
+    kops.k8s.io/instancegroup: nodes
   role: Node
   zones:
   - us-test-1a

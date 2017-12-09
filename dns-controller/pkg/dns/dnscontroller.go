@@ -567,14 +567,9 @@ func (o *dnsOp) updateRecords(k recordKey, newRecords []string, ttl int64) error
 		return err
 	}
 
-	if existing != nil {
-		glog.V(2).Infof("will replace existing dns record %s %s", existing.Type(), FixWildcards(existing.Name()))
-		cs.Remove(existing)
-	}
-
 	glog.V(2).Infof("Adding DNS changes to batch %s %s", k, newRecords)
 	rr := rrsProvider.New(fqdn, newRecords, ttl, rrstype.RrsType(k.RecordType))
-	cs.Add(rr)
+	cs.Upsert(rr)
 
 	return nil
 }
@@ -614,6 +609,18 @@ func (s *DNSControllerScope) Replace(recordName string, records []Record) {
 
 	glog.V(2).Infof("Update desired state: %s/%s: %v", s.ScopeName, recordName, records)
 	s.parent.recordChange()
+}
+
+// AllKeys implements Scope::AllKeys, returns all the keys in the current scope
+func (s *DNSControllerScope) AllKeys() []string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	var keys []string
+	for k := range s.Records {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // recordsSliceEquals compares two []Record

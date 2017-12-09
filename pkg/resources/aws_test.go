@@ -24,13 +24,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"k8s.io/kops/cloudmock/aws/mockec2"
-	"k8s.io/kops/pkg/resources/tracker"
 	"k8s.io/kops/upup/pkg/fi/cloudup/awsup"
 )
 
 func TestAddUntaggedRouteTables(t *testing.T) {
 	cloud := awsup.BuildMockAWSCloud("us-east-1", "abc")
-	resources := make(map[string]*tracker.Resource)
+	resources := make(map[string]*Resource)
 
 	clusterName := "me.example.com"
 
@@ -72,7 +71,7 @@ func TestAddUntaggedRouteTables(t *testing.T) {
 		RouteTableId: aws.String("rt-5555"),
 	})
 
-	resources["vpc:vpc-1234"] = &tracker.Resource{}
+	resources["vpc:vpc-1234"] = &Resource{}
 
 	err := addUntaggedRouteTables(cloud, clusterName, resources)
 	if err != nil {
@@ -87,5 +86,57 @@ func TestAddUntaggedRouteTables(t *testing.T) {
 	expected := []string{"route-table:rt-1234", "vpc:vpc-1234"}
 	if !reflect.DeepEqual(expected, keys) {
 		t.Fatalf("expected=%q, actual=%q", expected, keys)
+	}
+}
+
+func TestListRouteTables(t *testing.T) {
+	cloud := awsup.BuildMockAWSCloud("us-east-1", "abc")
+	//resources := make(map[string]*Resource)
+	clusterName := "me.example.com"
+	ownershipTagKey := "kubernetes.io/cluster/" + clusterName
+
+	c := &mockec2.MockEC2{}
+	cloud.MockEC2 = c
+
+	c.RouteTables = append(c.RouteTables, &ec2.RouteTable{
+		VpcId:        aws.String("vpc-1234"),
+		RouteTableId: aws.String("rt-shared"),
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("KubernetesCluster"),
+				Value: aws.String(clusterName),
+			},
+			{
+				Key:   aws.String(ownershipTagKey),
+				Value: aws.String("shared"),
+			},
+		},
+	})
+	c.RouteTables = append(c.RouteTables, &ec2.RouteTable{
+		VpcId:        aws.String("vpc-1234"),
+		RouteTableId: aws.String("rt-owned"),
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("KubernetesCluster"),
+				Value: aws.String(clusterName),
+			},
+			{
+				Key:   aws.String(ownershipTagKey),
+				Value: aws.String("owned"),
+			},
+		},
+	})
+
+	resources, err := ListRouteTables(cloud, clusterName)
+	if err != nil {
+		t.Fatalf("error listing route tables: %v", err)
+	}
+	for _, rt := range resources {
+		if rt.ID == "rt-shared" && !rt.Shared {
+			t.Fatalf("expected Shared: true, got: %v", rt.Shared)
+		}
+		if rt.ID == "rt-owned" && rt.Shared {
+			t.Fatalf("expected Shared: false, got: %v", rt.Shared)
+		}
 	}
 }

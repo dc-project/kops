@@ -18,12 +18,17 @@ package gce
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
+
+	"os"
 
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	compute "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/iam/v1"
+	oauth2 "google.golang.org/api/oauth2/v2"
 	"google.golang.org/api/storage/v1"
 	"k8s.io/kops/pkg/apis/kops"
 	"k8s.io/kops/upup/pkg/fi"
@@ -35,6 +40,7 @@ type GCECloud interface {
 	fi.Cloud
 	Compute() *compute.Service
 	Storage() *storage.Service
+	IAM() *iam.Service
 
 	Region() string
 	Project() string
@@ -46,14 +52,21 @@ type GCECloud interface {
 	FindClusterStatus(cluster *kops.Cluster) (*kops.ClusterStatus, error)
 
 	Zones() ([]string, error)
+
+	// ServiceAccount returns the email for the service account that the instances will run under
+	ServiceAccount() (string, error)
 }
 
 type gceCloudImplementation struct {
 	compute *compute.Service
 	storage *storage.Service
+	iam     *iam.Service
 
 	region  string
 	project string
+
+	// projectInfo caches the project info from the compute API
+	projectInfo *compute.Project
 
 	labels map[string]string
 }
@@ -76,7 +89,12 @@ func NewGCECloud(region string, project string, labels map[string]string) (GCECl
 
 	ctx := context.Background()
 
-	client, err := google.DefaultClient(ctx, compute.ComputeScope)
+	if os.Getenv("GOOGLE_APPLICATION_CREDENTIALS") != "" {
+		glog.Infof("Will load GOOGLE_APPLICATION_CREDENTIALS from %s", os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+	}
+
+	// TODO: should we create different clients with per-service scopes?
+	client, err := google.DefaultClient(ctx, compute.CloudPlatformScope)
 	if err != nil {
 		return nil, fmt.Errorf("error building google API client: %v", err)
 	}
@@ -92,7 +110,24 @@ func NewGCECloud(region string, project string, labels map[string]string) (GCECl
 	}
 	c.storage = storageService
 
+	iamService, err := iam.New(client)
+	if err != nil {
+		return nil, fmt.Errorf("error building IAM API client: %v", err)
+	}
+	c.iam = iamService
+
 	gceCloudInstances[region+"::"+project] = c
+
+	{
+		// Attempt to log the current GCE service account in user, for diagnostic purposes
+		// At least until we get e2e running, we're doing this always
+		tokenInfo, err := c.getTokenInfo(client)
+		if err != nil {
+			glog.Infof("unable to get token info: %v", err)
+		} else {
+			glog.Infof("running with GCE credentials: email=%s, scope=%s", tokenInfo.Email, tokenInfo.Scope)
+		}
+	}
 
 	return c.WithLabels(labels), nil
 }
@@ -121,6 +156,11 @@ func (c *gceCloudImplementation) Storage() *storage.Service {
 	return c.storage
 }
 
+// IAM returns the IAM client
+func (c *gceCloudImplementation) IAM() *iam.Service {
+	return c.iam
+}
+
 // Region returns private struct element region.
 func (c *gceCloudImplementation) Region() string {
 	return c.region
@@ -129,6 +169,26 @@ func (c *gceCloudImplementation) Region() string {
 // Project returns private struct element project.
 func (c *gceCloudImplementation) Project() string {
 	return c.project
+}
+
+// ServiceAccount returns the email address for the service account that the instances will run under.
+func (c *gceCloudImplementation) ServiceAccount() (string, error) {
+	if c.projectInfo == nil {
+		// Find the project info from the compute API, which includes the default service account
+		glog.V(2).Infof("fetching project %q from compute API", c.project)
+		p, err := c.compute.Projects.Get(c.project).Do()
+		if err != nil {
+			return "", fmt.Errorf("error fetching info for project %q: %v", c.project, err)
+		}
+
+		c.projectInfo = p
+	}
+
+	if c.projectInfo.DefaultServiceAccount == "" {
+		return "", fmt.Errorf("compute project %q did not have DefaultServiceAccount", c.project)
+	}
+
+	return c.projectInfo.DefaultServiceAccount, nil
 }
 
 func (c *gceCloudImplementation) DNS() (dnsprovider.Interface, error) {
@@ -158,7 +218,6 @@ func (c *gceCloudImplementation) Labels() map[string]string {
 
 // Zones returns the zones in a region
 func (c *gceCloudImplementation) Zones() ([]string, error) {
-
 	var zones []string
 	// TODO: Only zones in api.Cluster object, if we have one?
 	gceZones, err := c.Compute().Zones.List(c.Project()).Do()
@@ -251,4 +310,31 @@ func FindInstanceTemplates(c GCECloud, clusterName string) ([]*compute.InstanceT
 	}
 
 	return matches, nil
+}
+
+// logTokenInfo returns information about the active credential
+func (c *gceCloudImplementation) getTokenInfo(client *http.Client) (*oauth2.Tokeninfo, error) {
+	tokenSource, err := google.DefaultTokenSource(context.TODO(), compute.CloudPlatformScope)
+	if err != nil {
+		return nil, fmt.Errorf("error building token source: %v", err)
+	}
+
+	token, err := tokenSource.Token()
+	if err != nil {
+		return nil, fmt.Errorf("error getting token: %v", err)
+	}
+
+	// Note: do not log token or any portion of it
+
+	service, err := oauth2.New(client)
+	if err != nil {
+		return nil, fmt.Errorf("error creating oauth2 service client: %v", err)
+	}
+
+	tokenInfo, err := service.Tokeninfo().AccessToken(token.AccessToken).Do()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching oauth2 token info: %v", err)
+	}
+
+	return tokenInfo, nil
 }

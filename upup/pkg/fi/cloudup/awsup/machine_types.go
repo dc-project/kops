@@ -206,6 +206,50 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 		EphemeralDisks: nil,
 	},
 
+	// m5 family
+	{
+		Name:           "m5.large",
+		MemoryGB:       8,
+		ECU:            10,
+		Cores:          2,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "m5.xlarge",
+		MemoryGB:       16,
+		ECU:            15,
+		Cores:          4,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "m5.2xlarge",
+		MemoryGB:       32,
+		ECU:            31,
+		Cores:          8,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "m5.4xlarge",
+		MemoryGB:       64,
+		ECU:            61,
+		Cores:          16,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "m5.12xlarge",
+		MemoryGB:       192,
+		ECU:            173,
+		Cores:          48,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "m5.24xlarge",
+		MemoryGB:       384,
+		ECU:            345,
+		Cores:          96,
+		EphemeralDisks: nil,
+	},
+
 	// c3 family
 	{
 		Name:           "c3.large",
@@ -280,6 +324,50 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 		EphemeralDisks: nil,
 	},
 
+	// c5 family
+	{
+		Name:           "c5.large",
+		MemoryGB:       4,
+		ECU:            8,
+		Cores:          2,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "c5.xlarge",
+		MemoryGB:       8,
+		ECU:            16,
+		Cores:          4,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "c5.2xlarge",
+		MemoryGB:       16,
+		ECU:            31,
+		Cores:          8,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "c5.4xlarge",
+		MemoryGB:       32,
+		ECU:            62,
+		Cores:          16,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "c5.9xlarge",
+		MemoryGB:       72,
+		ECU:            139,
+		Cores:          36,
+		EphemeralDisks: nil,
+	},
+	{
+		Name:           "c5.18xlarge",
+		MemoryGB:       144,
+		ECU:            278,
+		Cores:          72,
+		EphemeralDisks: nil,
+	},
+
 	// cc2 family
 	{
 		Name:           "cc2.8xlarge",
@@ -343,6 +431,39 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 			2000, 2000, 2000, 2000, 2000, 2000,
 			2000, 2000, 2000, 2000, 2000, 2000,
 			2000, 2000, 2000, 2000, 2000, 2000,
+		},
+	},
+
+	// h1 family
+	{
+		Name:           "h1.2xlarge",
+		MemoryGB:       32,
+		ECU:            26,
+		Cores:          8,
+		EphemeralDisks: []int{2000},
+	},
+	{
+		Name:           "h1.4xlarge",
+		MemoryGB:       64,
+		ECU:            53.5,
+		Cores:          16,
+		EphemeralDisks: []int{2000, 2000},
+	},
+	{
+		Name:           "h1.8xlarge",
+		MemoryGB:       128,
+		ECU:            99,
+		Cores:          32,
+		EphemeralDisks: []int{2000, 2000, 2000, 2000},
+	},
+	{
+		Name:     "h1.16xlarge",
+		MemoryGB: 256,
+		ECU:      188,
+		Cores:    64,
+		EphemeralDisks: []int{
+			2000, 2000, 2000, 2000,
+			2000, 2000, 2000, 2000,
 		},
 	},
 
@@ -557,6 +678,32 @@ var MachineTypes []AWSMachineTypeInfo = []AWSMachineTypeInfo{
 	{
 		Name:           "p2.16xlarge",
 		MemoryGB:       732,
+		ECU:            188,
+		Cores:          64,
+		EphemeralDisks: nil,
+		GPU:            true,
+	},
+
+	// p3 family
+	{
+		Name:           "p3.2xlarge",
+		MemoryGB:       61,
+		ECU:            23.5,
+		Cores:          8,
+		EphemeralDisks: nil,
+		GPU:            true,
+	},
+	{
+		Name:           "p3.8xlarge",
+		MemoryGB:       244,
+		ECU:            94,
+		Cores:          32,
+		EphemeralDisks: nil,
+		GPU:            true,
+	},
+	{
+		Name:           "p3.16xlarge",
+		MemoryGB:       488,
 		ECU:            188,
 		Cores:          64,
 		EphemeralDisks: nil,

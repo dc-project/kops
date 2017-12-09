@@ -21,6 +21,7 @@ spec:
       name: a
     name: events
   iam:
+    allowContainerRegistry: true
     legacy: false
   kubernetesApiAccess:
   - 0.0.0.0/0
@@ -57,6 +58,8 @@ spec:
   machineType: m3.medium
   maxSize: 1
   minSize: 1
+  nodeLabels:
+    kops.k8s.io/instancegroup: master-us-test-1a
   role: Master
   subnets:
   - us-test-1a
@@ -75,6 +78,8 @@ spec:
   machineType: t2.medium
   maxSize: 2
   minSize: 2
+  nodeLabels:
+    kops.k8s.io/instancegroup: nodes
   role: Node
   subnets:
   - us-test-1a

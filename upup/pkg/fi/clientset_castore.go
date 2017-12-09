@@ -31,6 +31,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kops/pkg/acls"
 	"k8s.io/kops/pkg/apis/kops"
 	kopsinternalversion "k8s.io/kops/pkg/client/clientset_generated/clientset/typed/kops/internalversion"
 	"k8s.io/kops/pkg/pki"
@@ -39,54 +40,54 @@ import (
 
 // ClientsetCAStore is a CAStore implementation that stores keypairs in Keyset on a API server
 type ClientsetCAStore struct {
+	cluster   *kops.Cluster
 	namespace string
 	clientset kopsinternalversion.KopsInterface
 
-	mutex         sync.Mutex
-	cacheCaKeyset *keyset
+	mutex           sync.Mutex
+	cachedCaKeysets map[string]*keyset
 }
 
 var _ CAStore = &ClientsetCAStore{}
 
 // NewClientsetCAStore is the constructor for ClientsetCAStore
-func NewClientsetCAStore(clientset kopsinternalversion.KopsInterface, namespace string) CAStore {
+func NewClientsetCAStore(cluster *kops.Cluster, clientset kopsinternalversion.KopsInterface, namespace string) CAStore {
 	c := &ClientsetCAStore{
-		clientset: clientset,
-		namespace: namespace,
+		cluster:         cluster,
+		clientset:       clientset,
+		namespace:       namespace,
+		cachedCaKeysets: make(map[string]*keyset),
 	}
 
 	return c
 }
 
-// readCAKeypairs retrieves the CA keypair, generating a new keypair if not found
-func (c *ClientsetCAStore) readCAKeypairs() (*keyset, error) {
+// readCAKeypairs retrieves the CA keypair.
+// (No longer generates a keypair if not found.)
+func (c *ClientsetCAStore) readCAKeypairs(id string) (*keyset, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	if c.cacheCaKeyset != nil {
-		return c.cacheCaKeyset, nil
+	cached := c.cachedCaKeysets[id]
+	if cached != nil {
+		return cached, nil
 	}
 
-	keyset, err := c.loadKeyset(CertificateId_CA)
+	keyset, err := c.loadKeyset(id)
 	if err != nil {
 		return nil, err
 	}
 
 	if keyset == nil {
-		keyset, err = c.generateCACertificate()
-		if err != nil {
-			return nil, err
-		}
-
+		return nil, nil
 	}
-	c.cacheCaKeyset = keyset
-
+	c.cachedCaKeysets[id] = keyset
 	return keyset, nil
 }
 
 // generateCACertificate creates and stores a CA keypair
 // Should be called with the mutex held, to prevent concurrent creation of different keys
-func (c *ClientsetCAStore) generateCACertificate() (*keyset, error) {
+func (c *ClientsetCAStore) generateCACertificate(id string) (*keyset, error) {
 	template := BuildCAX509Template()
 
 	caRsaKey, err := rsa.GenerateKey(crypto_rand.Reader, 2048)
@@ -104,7 +105,7 @@ func (c *ClientsetCAStore) generateCACertificate() (*keyset, error) {
 		return nil, err
 	}
 
-	return c.storeAndVerifyKeypair(CertificateId_CA, caCertificate, caPrivateKey)
+	return c.storeAndVerifyKeypair(id, caCertificate, caPrivateKey)
 }
 
 // keyset is a parsed Keyset
@@ -310,12 +311,12 @@ func (c *ClientsetCAStore) List() ([]*KeystoreItem, error) {
 }
 
 // IssueCert implements CAStore::IssueCert
-func (c *ClientsetCAStore) IssueCert(name string, serial *big.Int, privateKey *pki.PrivateKey, template *x509.Certificate) (*pki.Certificate, error) {
+func (c *ClientsetCAStore) IssueCert(signer string, name string, serial *big.Int, privateKey *pki.PrivateKey, template *x509.Certificate) (*pki.Certificate, error) {
 	glog.Infof("Issuing new certificate: %q", name)
 
 	template.SerialNumber = serial
 
-	caKeyset, err := c.readCAKeypairs()
+	caKeyset, err := c.readCAKeypairs(signer)
 	if err != nil {
 		return nil, err
 	}
@@ -416,10 +417,10 @@ func (c *ClientsetCAStore) PrivateKey(name string, createIfMissing bool) (*pki.P
 }
 
 // CreateKeypair implements CAStore::CreateKeypair
-func (c *ClientsetCAStore) CreateKeypair(id string, template *x509.Certificate, privateKey *pki.PrivateKey) (*pki.Certificate, error) {
+func (c *ClientsetCAStore) CreateKeypair(signer string, id string, template *x509.Certificate, privateKey *pki.PrivateKey) (*pki.Certificate, error) {
 	serial := c.buildSerial()
 
-	cert, err := c.IssueCert(id, serial, privateKey, template)
+	cert, err := c.IssueCert(signer, id, serial, privateKey, template)
 	if err != nil {
 		return nil, err
 	}
@@ -641,14 +642,24 @@ func (c *ClientsetCAStore) MirrorTo(basedir vfs.Path) error {
 				item := &keyset.Spec.Keys[i]
 				{
 					p := basedir.Join("issued", keyset.Name, item.Id+".crt")
-					err = p.WriteFile(item.PublicMaterial)
+					acl, err := acls.GetACL(p, c.cluster)
+					if err != nil {
+						return err
+					}
+
+					err = p.WriteFile(item.PublicMaterial, acl)
 					if err != nil {
 						return fmt.Errorf("error writing %q: %v", p, err)
 					}
 				}
 				{
 					p := basedir.Join("private", keyset.Name, item.Id+".key")
-					err = p.WriteFile(item.PrivateMaterial)
+					acl, err := acls.GetACL(p, c.cluster)
+					if err != nil {
+						return err
+					}
+
+					err = p.WriteFile(item.PrivateMaterial, acl)
 					if err != nil {
 						return fmt.Errorf("error writing %q: %v", p, err)
 					}
@@ -682,7 +693,12 @@ func (c *ClientsetCAStore) MirrorTo(basedir vfs.Path) error {
 		id := formatFingerprint(h.Sum(nil))
 
 		p := basedir.Join("ssh", "public", sshCredential.Name, id)
-		err = p.WriteFile([]byte(sshCredential.Spec.PublicKey))
+		acl, err := acls.GetACL(p, c.cluster)
+		if err != nil {
+			return err
+		}
+
+		err = p.WriteFile([]byte(sshCredential.Spec.PublicKey), acl)
 		if err != nil {
 			return fmt.Errorf("error writing %q: %v", p, err)
 		}

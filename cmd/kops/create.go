@@ -130,6 +130,7 @@ func RunCreate(f *util.Factory, out io.Writer, c *CreateOptions) error {
 			return fmt.Errorf("error reading file %q: %v", f, err)
 		}
 
+		// TODO: this does not support a JSON array
 		sections := bytes.Split(contents, []byte("\n---\n"))
 		for _, section := range sections {
 			defaults := &schema.GroupVersionKind{
@@ -218,7 +219,7 @@ func RunCreate(f *util.Factory, out io.Writer, c *CreateOptions) error {
 				if err != nil {
 					return err
 				} else {
-					fmt.Fprintf(&sb, "Added ssh creadential\n")
+					fmt.Fprintf(&sb, "Added ssh credential\n")
 				}
 
 			default:

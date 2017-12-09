@@ -163,6 +163,8 @@ type KubeProxyConfig struct {
 	HostnameOverride string `json:"hostnameOverride,omitempty" flag:"hostname-override"`
 	// Master is the address of the Kubernetes API server (overrides any value in kubeconfig)
 	Master string `json:"master,omitempty" flag:"master"`
+	// Enabled allows enabling or disabling kube-proxy
+	Enabled *bool `json:"enabled,omitempty"`
 	// FeatureGates is a series of key pairs used to switch on features for the proxy
 	FeatureGates map[string]string `json:"featureGates" flag:"feature-gates"`
 }
@@ -248,6 +250,8 @@ type KubeAPIServerConfig struct {
 	AuditLogMaxBackups *int32 `json:"auditLogMaxBackups,omitempty" flag:"audit-log-maxbackup"`
 	// The maximum size in megabytes of the audit log file before it gets rotated. Defaults to 100MB.
 	AuditLogMaxSize *int32 `json:"auditLogMaxSize,omitempty" flag:"audit-log-maxsize"`
+	// AuditPolicyFile is the full path to a advanced audit configuration file a.g. /srv/kubernetes/audit.conf
+	AuditPolicyFile string `json:"auditPolicyFile,omitempty" flag:"audit-policy-file"`
 	// File with webhook configuration for token authentication in kubeconfig format. The API server will query the remote service to determine authentication for bearer tokens.
 	AuthenticationTokenWebhookConfigFile *string `json:"authenticationTokenWebhookConfigFile,omitempty" flag:"authentication-token-webhook-config-file"`
 	// The duration to cache responses from the webhook token authenticator. Default is 2m. (default 2m0s)
@@ -258,6 +262,19 @@ type KubeAPIServerConfig struct {
 	AuthorizationRBACSuperUser *string `json:"authorizationRbacSuperUser,omitempty" flag:"authorization-rbac-super-user"`
 	// ExperimentalEncryptionProviderConfig enables encryption at rest for secrets.
 	ExperimentalEncryptionProviderConfig *string `json:"experimentalEncryptionProviderConfig,omitempty" flag:"experimental-encryption-provider-config"`
+
+	// List of request headers to inspect for usernames. X-Remote-User is common.
+	RequestheaderUsernameHeaders []string `json:"requestheaderUsernameHeaders,omitempty" flag:"requestheader-username-headers"`
+	// List of request headers to inspect for groups. X-Remote-Group is suggested.
+	RequestheaderGroupHeaders []string `json:"requestheaderGroupHeaders,omitempty" flag:"requestheader-group-headers"`
+	// List of request header prefixes to inspect. X-Remote-Extra- is suggested.
+	RequestheaderExtraHeaderPrefixes []string `json:"requestheaderExtraHeaderPrefixes,omitempty" flag:"requestheader-extra-headers-prefix"`
+	//Root certificate bundle to use to verify client certificates on incoming requests before trusting usernames in headers specified by --requestheader-username-headers
+	RequestheaderClientCAFile string `json:"requestheaderClientCAFile,omitempty" flag:"requestheader-client-ca-file"`
+	// List of client certificate common names to allow to provide usernames in headers specified by --requestheader-username-headers. If empty, any client certificate validated by the authorities in --requestheader-client-ca-file is allowed.
+	RequestheaderAllowedNames []string `json:"requestheaderAllowedNames,omitempty" flag:"requestheader-allowed-names"`
+	// FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.
+	FeatureGates map[string]string `json:"featureGates,omitempty" flag:"feature-gates"`
 }
 
 // KubeControllerManagerConfig is the configuration for the controller
@@ -294,6 +311,23 @@ type KubeControllerManagerConfig struct {
 	TerminatedPodGCThreshold *int32 `json:"terminatedPodGCThreshold,omitempty" flag:"terminated-pod-gc-threshold"`
 	// UseServiceAccountCredentials controls whether we use individual service account credentials for each controller.
 	UseServiceAccountCredentials *bool `json:"useServiceAccountCredentials,omitempty" flag:"use-service-account-credentials"`
+	// HorizontalPodAutoscalerSyncPeriod is the amount of time between syncs
+	// During each period, the controller manager queries the resource utilization
+	// against the metrics specified in each HorizontalPodAutoscaler definition.
+	HorizontalPodAutoscalerSyncPeriod *metav1.Duration `json:"horizontalPodAutoscalerSyncPeriod,omitempty" flag:"horizontal-pod-autoscaler-sync-period"`
+	// HorizontalPodAutoscalerDownscaleDelay is a duration that specifies
+	// how long the autoscaler has to wait before another downscale
+	// operation can be performed after the current one has completed.
+	HorizontalPodAutoscalerDownscaleDelay *metav1.Duration `json:"horizontalPodAutoscalerDownscaleDelay,omitempty" flag:"horizontal-pod-autoscaler-downscale-delay"`
+	// HorizontalPodAutoscalerUpscaleDelay is a duration that specifies how
+	// long the autoscaler has to wait before another upscale operation can
+	// be performed after the current one has completed.
+	HorizontalPodAutoscalerUpscaleDelay *metav1.Duration `json:"horizontalPodAutoscalerUpscaleDelay,omitempty" flag:"horizontal-pod-autoscaler-upscale-delay"`
+	// HorizontalPodAutoscalerUseRestClients determines if the new-style clients
+	// should be used if support for custom metrics is enabled.
+	HorizontalPodAutoscalerUseRestClients *bool `json:"horizontalPodAutoscalerUseRestClients,omitempty" flag:"horizontal-pod-autoscaler-use-rest-clients"`
+	// FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.
+	FeatureGates map[string]string `json:"featureGates,omitempty" flag:"feature-gates"`
 }
 
 type CloudControllerManagerConfig struct {
@@ -330,6 +364,10 @@ type KubeSchedulerConfig struct {
 	Image string `json:"image,omitempty"`
 	// LeaderElection defines the configuration of leader election client.
 	LeaderElection *LeaderElectionConfiguration `json:"leaderElection,omitempty"`
+	// UsePolicyConfigMap enable setting the scheduler policy from a configmap
+	UsePolicyConfigMap *bool `json:"usePolicyConfigMap,omitempty"`
+	// FeatureGates is set of key=value pairs that describe feature gates for alpha/experimental features.
+	FeatureGates map[string]string `json:"featureGates,omitempty" flag:"feature-gates"`
 }
 
 // LeaderElectionConfiguration defines the configuration of leader election

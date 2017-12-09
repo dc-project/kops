@@ -270,7 +270,7 @@ var dockerVersions = []dockerVersion{
 		Version:       "1.12.6",
 		Source:        "https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-1.12.6-1.el7.centos.x86_64.rpm",
 		Hash:          "776dbefa9dc7733000e46049293555a9a422c50e",
-		Dependencies:  []string{"libtool-ltdl", "libseccomp"},
+		Dependencies:  []string{"libtool-ltdl", "libseccomp", "libcgroup"},
 	},
 	{
 		DockerVersion: "1.12.6",
@@ -280,9 +280,24 @@ var dockerVersions = []dockerVersion{
 		Version:       "1.12.6",
 		Source:        "https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-selinux-1.12.6-1.el7.centos.noarch.rpm",
 		Hash:          "9a6ee0d631ca911b6927450a3c396e9a5be75047",
+		Dependencies:  []string{"policycoreutils-python"},
 	},
 
 	// 1.13.1 - k8s 1.8
+
+	// 1.13.1 - Debian9 (stretch)
+	{
+		DockerVersion: "1.13.1",
+		Name:          "docker-engine",
+		Distros:       []distros.Distribution{distros.DistributionDebian9},
+		Architectures: []Architecture{ArchitectureAmd64},
+		Version:       "1.13.1-0~debian-stretch",
+		Source:        "http://apt.dockerproject.org/repo/pool/main/d/docker-engine/docker-engine_1.13.1-0~debian-stretch_amd64.deb",
+		Hash:          "19296514610aa2e5efddade5222cafae7894a689",
+		Dependencies:  []string{"bridge-utils", "libapparmor1", "libltdl7", "perl"},
+		//Depends: iptables, init-system-helpers (>= 1.18~), libapparmor1 (>= 2.6~devel), libc6 (>= 2.17), libdevmapper1.02.1 (>= 2:1.02.90), libltdl7 (>= 2.4.2), libsystemd0
+		//Recommends: aufs-tools, ca-certificates, cgroupfs-mount | cgroup-lite, git, xz-utils
+	},
 
 	// 1.13.1 - Jessie
 	{
@@ -332,7 +347,7 @@ var dockerVersions = []dockerVersion{
 		Version:       "1.13.1",
 		Source:        "https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-1.13.1-1.el7.centos.x86_64.rpm",
 		Hash:          "b18f7fd8057665e7d2871d29640e214173f70fe1",
-		Dependencies:  []string{"libtool-ltdl", "libseccomp"},
+		Dependencies:  []string{"libtool-ltdl", "libseccomp", "libcgroup"},
 	},
 	{
 		DockerVersion: "1.13.1",
@@ -342,9 +357,22 @@ var dockerVersions = []dockerVersion{
 		Version:       "1.13.1",
 		Source:        "https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-selinux-1.13.1-1.el7.centos.noarch.rpm",
 		Hash:          "948c518a610af631fa98aa32d9bcd43e9ddd5ebc",
+		Dependencies:  []string{"policycoreutils-python"},
 	},
 
 	// 17.03.2 - k8s 1.8
+
+	// 17.03.2 - Debian9 (stretch)
+	{
+		DockerVersion: "17.03.2",
+		Name:          "docker-ce",
+		Distros:       []distros.Distribution{distros.DistributionDebian9},
+		Architectures: []Architecture{ArchitectureAmd64},
+		Version:       "17.03.2~ce-0~debian-stretch",
+		Source:        "http://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/docker-ce_17.03.2~ce-0~debian-stretch_amd64.deb",
+		Hash:          "36773361cf44817371770cb4e6e6823590d10297",
+		Dependencies:  []string{"bridge-utils", "libapparmor1", "libltdl7", "perl"},
+	},
 
 	// 17.03.2 - Jessie
 	{
@@ -391,7 +419,7 @@ var dockerVersions = []dockerVersion{
 		Version:       "17.03.2.ce",
 		Source:        "https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-17.03.2.ce-1.el7.centos.x86_64.rpm",
 		Hash:          "494ca888f5b1553f93b9d9a5dad4a67f76cf9eb5",
-		Dependencies:  []string{"libtool-ltdl", "libseccomp"},
+		Dependencies:  []string{"libtool-ltdl", "libseccomp", "libcgroup"},
 	},
 	{
 		DockerVersion: "17.03.2",
@@ -401,6 +429,58 @@ var dockerVersions = []dockerVersion{
 		Version:       "17.03.2.ce",
 		Source:        "https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-selinux-17.03.2.ce-1.el7.centos.noarch.rpm",
 		Hash:          "4659c937b66519c88ef2a82a906bb156db29d191",
+		Dependencies:  []string{"policycoreutils-python"},
+	},
+	// 17.09.0 - k8s 1.8
+
+	// 17.09.0 - Jessie
+	{
+		DockerVersion: "17.09.0",
+		Name:          "docker-ce",
+		Distros:       []distros.Distribution{distros.DistributionJessie},
+		Architectures: []Architecture{ArchitectureAmd64},
+		Version:       "17.09.0~ce-0~debian",
+		Source:        "http://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/docker-ce_17.09.0~ce-0~debian_amd64.deb",
+		Hash:          "430ba87f8aa36fedcac1a48e909cbe1830b53845",
+		Dependencies:  []string{"bridge-utils", "libapparmor1", "libltdl7", "perl"},
+	},
+
+	// 17.09.0 - Jessie on ARM
+	{
+		DockerVersion: "17.09.0",
+		Name:          "docker-ce",
+		Distros:       []distros.Distribution{distros.DistributionJessie},
+		Architectures: []Architecture{ArchitectureArm},
+		Version:       "17.09.0~ce-0~debian",
+		Source:        "http://download.docker.com/linux/debian/dists/jessie/pool/stable/armhf/docker-ce_17.09.0~ce-0~debian_armhf.deb",
+		Hash:          "5001a1defec7c33aa58ddebbd3eae6ebb5f36479",
+		Dependencies:  []string{"bridge-utils", "libapparmor1", "libltdl7", "perl"},
+	},
+
+	// 17.09.0 - Xenial
+	{
+		DockerVersion: "17.09.0",
+		Name:          "docker-ce",
+		Distros:       []distros.Distribution{distros.DistributionXenial},
+		Architectures: []Architecture{ArchitectureAmd64},
+		Version:       "17.09.0~ce-0~ubuntu",
+		Source:        "http://download.docker.com/linux/ubuntu/dists/xenial/pool/stable/amd64/docker-ce_17.09.0~ce-0~ubuntu_amd64.deb",
+		Hash:          "94f6e89be6d45d9988269a237eb27c7d6a844d7f",
+		Dependencies:  []string{"bridge-utils", "iptables", "libapparmor1", "libltdl7", "perl"},
+		//Depends: iptables, init-system-helpers, lsb-base, libapparmor1, libc6, libdevmapper1.02.1, libltdl7, libeseccomp2, libsystemd0
+		//Recommends: aufs-tools, ca-certificates, cgroupfs-mount | cgroup-lite, git, xz-utils, apparmor
+	},
+
+	// 17.09.0 - Centos / Rhel7
+	{
+		DockerVersion: "17.09.0",
+		Name:          "docker-ce",
+		Distros:       []distros.Distribution{distros.DistributionRhel7, distros.DistributionCentos7},
+		Architectures: []Architecture{ArchitectureAmd64},
+		Version:       "17.09.0.ce",
+		Source:        "https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-17.09.0.ce-1.el7.centos.x86_64.rpm",
+		Hash:          "b4ce72e80ff02926de943082821bbbe73958f87a",
+		Dependencies:  []string{"libtool-ltdl", "libseccomp", "libcgroup"},
 	},
 }
 
@@ -564,6 +644,7 @@ func (b *DockerBuilder) buildSystemdService(dockerVersionMajor int64, dockerVers
 
 	manifest.Set("Service", "Type", "notify")
 	manifest.Set("Service", "EnvironmentFile", "/etc/sysconfig/docker")
+	manifest.Set("Service", "EnvironmentFile", "/etc/environment")
 
 	if usesDockerSocket {
 		manifest.Set("Service", "ExecStart", dockerdCommand+" -H fd:// \"$DOCKER_OPTS\"")
@@ -632,6 +713,7 @@ func (b *DockerBuilder) buildContainerOSConfigurationDropIn(c *fi.ModelBuilderCo
 	lines := []string{
 		"[Service]",
 		"EnvironmentFile=/etc/sysconfig/docker",
+		"EnvironmentFile=/etc/environment",
 	}
 	contents := strings.Join(lines, "\n")
 

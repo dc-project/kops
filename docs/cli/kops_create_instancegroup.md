@@ -8,7 +8,11 @@ Create an instancegroup.
 ### Synopsis
 
 
-Create an instancegroup configuration.  kops has the concept of "instance groups", which are a group of similar virtual machines. On AWS, they map to an AutoScalingGroup. An ig work either as a Kubernetes master or a node.
+Create an InstanceGroup configuration. 
+
+An InstanceGroup is a group of similar virtual machines. On AWS, an InstanceGroup maps to an AutoScalingGroup. 
+
+The Role of an InstanceGroup defines whether machines will act as a Kubernetes master or node.
 
 ```
 kops create instancegroup
@@ -20,11 +24,18 @@ kops create instancegroup
   # Create an instancegroup for the k8s-cluster.example.com cluster.
   kops create ig --name=k8s-cluster.example.com node-example \
   --role node --subnet my-subnet-name
+  
+  # Create a YAML manifest for an instancegroup for the k8s-cluster.example.com cluster.
+  kops create ig --name=k8s-cluster.example.com node-example \
+  --role node --subnet my-subnet-name --dry-run -oyaml
 ```
 
 ### Options
 
 ```
+      --dry-run              If true, only print the object that would be sent, without sending it. This flag can be used to create a cluster YAML or JSON manifest.
+      --edit                 If true, an editor will be opened to edit default values. (default true)
+  -o, --output string        Ouput format. One of json|yaml
       --role string          Type of instance group to create (Node,Master,Bastion) (default "Node")
       --subnet stringSlice   Subnets in which to create instance group
 ```

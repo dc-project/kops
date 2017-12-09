@@ -18,8 +18,14 @@ package vfsclientset
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/watch"
@@ -28,9 +34,6 @@ import (
 	"k8s.io/kops/pkg/apis/kops/v1alpha1"
 	"k8s.io/kops/pkg/apis/kops/validation"
 	"k8s.io/kops/util/pkg/vfs"
-	"os"
-	"strings"
-	"time"
 )
 
 type ClusterVFS struct {
@@ -49,6 +52,7 @@ func (c *ClusterVFS) Get(name string, options metav1.GetOptions) (*api.Cluster, 
 	if options.ResourceVersion != "" {
 		return nil, fmt.Errorf("ResourceVersion not supported in ClusterVFS::Get")
 	}
+	// TODO: Return not found
 	return c.find(name)
 }
 
@@ -101,7 +105,7 @@ func (r *ClusterVFS) Create(c *api.Cluster) (*api.Cluster, error) {
 		return nil, fmt.Errorf("clusterName is required")
 	}
 
-	if err := r.writeConfig(r.basePath.Join(clusterName, registry.PathCluster), c, vfs.WriteOptionCreate); err != nil {
+	if err := r.writeConfig(c, r.basePath.Join(clusterName, registry.PathCluster), c, vfs.WriteOptionCreate); err != nil {
 		if os.IsExist(err) {
 			return nil, err
 		}
@@ -122,11 +126,15 @@ func (r *ClusterVFS) Update(c *api.Cluster, status *api.ClusterStatus) (*api.Clu
 		return nil, err
 	}
 
+	if old == nil {
+		return nil, errors.NewNotFound(schema.GroupResource{Group: api.GroupName, Resource: "Cluster"}, clusterName)
+	}
+
 	if err := validation.ValidateClusterUpdate(c, status, old).ToAggregate(); err != nil {
 		return nil, err
 	}
 
-	if err := r.writeConfig(r.basePath.Join(clusterName, registry.PathCluster), c, vfs.WriteOptionOnlyIfExists); err != nil {
+	if err := r.writeConfig(c, r.basePath.Join(clusterName, registry.PathCluster), c, vfs.WriteOptionOnlyIfExists); err != nil {
 		if os.IsNotExist(err) {
 			return nil, err
 		}

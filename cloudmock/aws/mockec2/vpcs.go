@@ -18,11 +18,12 @@ package mockec2
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
-	"strings"
 )
 
 type vpcInfo struct {
@@ -43,6 +44,10 @@ func (m *MockEC2) FindVpc(id string) *ec2.Vpc {
 }
 
 func (m *MockEC2) CreateVpcRequest(*ec2.CreateVpcInput) (*request.Request, *ec2.CreateVpcOutput) {
+	panic("Not implemented")
+	return nil, nil
+}
+func (m *MockEC2) CreateVpcWithContext(aws.Context, *ec2.CreateVpcInput, ...request.Option) (*ec2.CreateVpcOutput, error) {
 	panic("Not implemented")
 	return nil, nil
 }
@@ -78,6 +83,11 @@ func (m *MockEC2) CreateVpc(request *ec2.CreateVpcInput) (*ec2.CreateVpcOutput, 
 }
 
 func (m *MockEC2) DescribeVpcsRequest(*ec2.DescribeVpcsInput) (*request.Request, *ec2.DescribeVpcsOutput) {
+	panic("Not implemented")
+	return nil, nil
+}
+
+func (m *MockEC2) DescribeVpcsWithContext(aws.Context, *ec2.DescribeVpcsInput, ...request.Option) (*ec2.DescribeVpcsOutput, error) {
 	panic("Not implemented")
 	return nil, nil
 }
@@ -127,6 +137,10 @@ func (m *MockEC2) DescribeVpcAttributeRequest(*ec2.DescribeVpcAttributeInput) (*
 	panic("Not implemented")
 	return nil, nil
 }
+func (m *MockEC2) DescribeVpcAttributeWithContext(aws.Context, *ec2.DescribeVpcAttributeInput, ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
+	panic("Not implemented")
+	return nil, nil
+}
 func (m *MockEC2) DescribeVpcAttribute(request *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error) {
 	glog.Infof("DescribeVpcs: %v", request)
 
@@ -146,6 +160,10 @@ func (m *MockEC2) DescribeVpcAttribute(request *ec2.DescribeVpcAttributeInput) (
 }
 
 func (m *MockEC2) DescribeInternetGatewaysRequest(*ec2.DescribeInternetGatewaysInput) (*request.Request, *ec2.DescribeInternetGatewaysOutput) {
+	panic("Not implemented")
+	return nil, nil
+}
+func (m *MockEC2) DescribeInternetGatewaysWithContext(aws.Context, *ec2.DescribeInternetGatewaysInput, ...request.Option) (*ec2.DescribeInternetGatewaysOutput, error) {
 	panic("Not implemented")
 	return nil, nil
 }

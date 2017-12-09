@@ -18,13 +18,14 @@ package kops
 
 import (
 	"fmt"
+	"net/url"
+
 	"github.com/blang/semver"
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kops/pkg/apis/kops/util"
 	"k8s.io/kops/util/pkg/vfs"
-	"net/url"
 )
 
 var DefaultChannelBase = "https://raw.githubusercontent.com/kubernetes/kops/master/channels/"
@@ -248,6 +249,7 @@ const CloudProviderBareMetal CloudProviderID = "baremetal"
 const CloudProviderGCE CloudProviderID = "gce"
 const CloudProviderDO CloudProviderID = "digitalocean"
 const CloudProviderVSphere CloudProviderID = "vsphere"
+const CloudProviderOpenstack CloudProviderID = "openstack"
 
 // FindImage returns the image for the cloudprovider, or nil if none found
 func (c *Channel) FindImage(provider CloudProviderID, kubernetesVersion semver.Version) *ChannelImageSpec {

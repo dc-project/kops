@@ -75,7 +75,7 @@
       ],
       "Condition": {
         "StringEquals": {
-          "ec2:ResourceTag/KubernetesCluster": "iam-builder-test.k8s.local"
+          "autoscaling:ResourceTag/KubernetesCluster": "iam-builder-test.k8s.local"
         }
       }
     },
@@ -98,6 +98,24 @@
         "elasticloadbalancing:ModifyLoadBalancerAttributes",
         "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
         "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer"
+      ],
+      "Resource": [
+        "*"
+      ]
+    },
+    {
+      "Sid": "kopsK8sNLBMasterPermsRestrictive",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:CreateListener",
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:CreateTargetGroup",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:AddTags",
+        "elasticloadbalancing:ModifyTargetGroup",
+        "ec2:DescribeVpcs"
       ],
       "Resource": [
         "*"
